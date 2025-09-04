@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
 import 'package:rutsnrides_admin/core/services/gsheet_services.dart';
 import 'package:rutsnrides_admin/core/theme/app_theme.dart';
+import 'package:rutsnrides_admin/feature/auth/view/auth_screen.dart';
 import 'package:rutsnrides_admin/feature/main_screen.dart';
 
 void main() async {
@@ -35,7 +36,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
-      home: MainScreen(),
+      home: AuthScreen(),
     );
   }
 }

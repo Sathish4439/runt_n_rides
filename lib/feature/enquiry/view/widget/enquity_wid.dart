@@ -215,81 +215,84 @@ void showFollowUpDialog({
   required Function(DateTime selectedDate, String note) onConfirm,
 }) {
   final TextEditingController notesController = TextEditingController();
-  DateTime? selectedDate;
+  final ValueNotifier<DateTime?> selectedDateNotifier = ValueNotifier(null);
 
   showDialog(
     context: context,
     builder: (BuildContext context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text("Follow Up"),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      return AlertDialog(
+        title: Text("Follow Up"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Date Picker Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Date Picker
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
+                  ValueListenableBuilder<DateTime?>(
+                    valueListenable: selectedDateNotifier,
+                    builder: (context, selectedDate, _) {
+                      return Text(
                         selectedDate == null
                             ? "No date chosen"
-                            : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
-                      ),
-                      ElevatedButton(
-                        onPressed: () async {
-                          DateTime? picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2100),
-                          );
-                          if (picked != null) {
-                            selectedDate = picked;
-                          }
-                        },
-                        child: Text("Pick Date"),
-                      ),
-                    ],
+                            : "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+                      );
+                    },
                   ),
-                  SizedBox(height: 15),
-
-                  // Notes Input
-                  TextField(
-                    controller: notesController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: "Notes",
-                      border: OutlineInputBorder(),
-                    ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        selectedDateNotifier.value = picked; // ✅ updates UI
+                        print("picked $picked");
+                      }
+                    },
+                    child: Text("Pick Date"),
                   ),
                 ],
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (selectedDate == null || notesController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Please pick a date and enter notes"),
-                      ),
-                    );
-                    return;
-                  }
-                  onConfirm(selectedDate!, notesController.text);
-                  Navigator.pop(context);
-                },
-                child: Text("Save"),
+              SizedBox(height: 15),
+
+              // Notes Input
+              TextField(
+                controller: notesController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  labelText: "Notes",
+                  border: OutlineInputBorder(),
+                ),
               ),
             ],
-          );
-        },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final selectedDate = selectedDateNotifier.value;
+              if (selectedDate == null || notesController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Please pick a date and enter notes"),
+                  ),
+                );
+                return;
+              }
+              onConfirm(selectedDate, notesController.text);
+              Navigator.pop(context);
+            },
+            child: Text("Save"),
+          ),
+        ],
       );
     },
   );

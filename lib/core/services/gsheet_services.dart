@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:gsheets/gsheets.dart';
 import 'package:intl/intl.dart';
 import 'package:rutsnrides_admin/core/common_wid/widget.dart';
@@ -34,6 +35,37 @@ class GoogleSheetsService {
     }
   }
 
+  Future<void> printSheetNames(String spreadsheetId) async {
+    try {
+      print("🚀 Starting to fetch sheet names for spreadsheet: $spreadsheetId");
+
+      // Step 1: Load credentials
+      print("🔑 Fetching credentials...");
+      final credentials = await CredentialsService().getCredentials();
+      print("✅ Credentials fetched successfully");
+
+      // Step 2: Initialize GSheets
+      print("⚙️ Initializing GSheets instance...");
+      final gsheets = GSheets(credentials);
+      print("✅ GSheets initialized");
+
+      // Step 3: Fetch spreadsheet
+      print("📂 Fetching spreadsheet details...");
+      final spreadsheet = await gsheets.spreadsheet(spreadsheetId);
+      print("✅ Spreadsheet loaded: ${spreadsheet.id}");
+
+      // Step 4: List all sheets
+      print("📑 Listing all sheets in spreadsheet...");
+      for (var sheet in spreadsheet.sheets) {
+        print("   ➡️ Sheet title: ${sheet.title}, Sheet ID: ${sheet.id}");
+      }
+
+      print("🎉 Completed fetching all sheet names & IDs!");
+    } catch (e) {
+      print("❌ Error fetching sheet names: $e");
+    }
+  }
+
   /// Initialize connection to Google Sheets
   Future<void> init(
     String spreadsheetId, {
@@ -42,66 +74,88 @@ class GoogleSheetsService {
     String? attandanceSheetName,
   }) async {
     try {
-      // Initialize credentials if not done
+      print('🚀 Starting init for spreadsheet: $spreadsheetId');
+      print('🚀 Starting init for atttant shhet nmae: $attandanceSheetName');
+      // printSheetNames(spreadsheetId);
+
+      // Step 1: Initialize credentials
       if (_gsheets == null) {
+        print('🔑 Initializing credentials...');
         await initializeCredentials();
+        print('✅ Credentials initialized');
+      } else {
+        print('ℹ️ Credentials already initialized');
       }
 
+      // Step 2: Load spreadsheet
+      print('📂 Fetching spreadsheet...');
       _spreadsheet = await _gsheets!.spreadsheet(spreadsheetId);
+      print('✅ Spreadsheet loaded: ${_spreadsheet!.id}');
 
-      print('--- Worksheets in Spreadsheet $spreadsheetId ---');
+      // Step 3: List worksheets
+      print('📑 Worksheets in Spreadsheet $spreadsheetId:');
       for (var ws in _spreadsheet!.sheets) {
-        print('Worksheet: ${ws.title}');
+        print('   - ${ws.title}');
       }
 
-      // Initialize lead sheet
+      // Step 4: Initialize Lead Sheet
+      print('🔎 Looking for Lead Sheet...');
       _leadSheet = _findWorksheet(leadSheetName, [
         'form responses',
         'leads',
         'enquiry',
       ]);
       if (_leadSheet == null) {
-        throw Exception('❌ Lead sheet not found');
+        print('❌ Lead sheet not found with name: "$leadSheetName" or defaults');
       } else {
         print('✅ Lead sheet initialized: ${_leadSheet!.title}');
       }
 
-      // Initialize booking sheet
+      // Step 5: Initialize Booking Sheet
+      print('🔎 Looking for Booking Sheet...');
       _bookingSheet = _findWorksheet(bookingSheetName, [
         'bookings',
         'booking',
         'programs',
       ]);
       if (_bookingSheet == null) {
-        print('⚠️ Booking sheet not found');
+        print('⚠️ Booking sheet not found (name: "$bookingSheetName")');
       } else {
         print('✅ Booking sheet initialized: ${_bookingSheet!.title}');
       }
 
-      // Initialize attendance sheet
+      // Step 6: Initialize Attendance Sheet
+      print('🔎 Looking for Attendance Sheet...');
       _attandance = _findWorksheet(attandanceSheetName, [
         'attendance',
         'attendances',
         'attandance',
       ]);
       if (_attandance == null) {
-        print('⚠️ Attendance sheet not found');
+        print('⚠️ Attendance sheet not found (name: "$attandanceSheetName")');
       } else {
         print('✅ Attendance sheet initialized: ${_attandance!.title}');
       }
 
+      // Step 7: Print headers
+      print('📝 Printing headers for all initialized sheets...');
       await _printSheetHeaders();
+
+      print('🎉 Google Sheets init completed successfully!');
     } catch (e) {
-      print('Error initializing Google Sheets: $e');
+      print('❌ Error initializing Google Sheets: $e');
       rethrow;
     }
   }
+
   /// Helper method to find worksheets with fallback logic
   Worksheet? _findWorksheet(String? sheetName, List<String> partials) {
     if (_spreadsheet == null) {
       print('❌ Spreadsheet not initialized!');
       return null;
     }
+
+    print("_findWorksheet $sheetName");
 
     // Exact name match
     if (sheetName != null) {
@@ -132,7 +186,7 @@ class GoogleSheetsService {
 
     try {
       // Initialize spreadsheet if not already
-      await init(spreadsheetId);
+      await init(spreadsheetId, attandanceSheetName: attendanceSheetName);
 
       if (_attandance == null) {
         print('❌ Attendance sheet not initialized');
@@ -274,40 +328,52 @@ class GoogleSheetsService {
         return false;
       }
 
+      // ✅ Find Status column
       final statusCol = await _findColumnIndex('Status', _leadSheet!);
       if (statusCol == null) {
         print('❌ Status column not found');
         return false;
       }
 
-      // Update status
+      // ✅ Update Status
+      print("📌 Updating row $rowIndex, col $statusCol with status: $status");
       await _leadSheet!.values.insertValue(
         status,
         column: statusCol,
         row: rowIndex,
       );
 
-      // Update follow-up date if column exists
+      // ✅ Find Follow Up Date column
       final dateCol = await _findColumnIndex('Follow Up Date', _leadSheet!);
       if (dateCol != null) {
         final formattedDate =
             '${followUpDate.month}/${followUpDate.day}/${followUpDate.year} '
             '${followUpDate.hour}:${followUpDate.minute.toString().padLeft(2, '0')}';
+
+        print(
+          "📌 Updating row $rowIndex, col $dateCol with date: $formattedDate",
+        );
         await _leadSheet!.values.insertValue(
           formattedDate,
           column: dateCol,
           row: rowIndex,
         );
+      } else {
+        print("⚠️ 'Follow Up Date' column not found");
       }
 
-      // Update notes if column exists
+      // ✅ Find Follow Up Notes column
       final notesCol = await _findColumnIndex('Follow Up Notes', _leadSheet!);
       if (notesCol != null) {
+        print("📌 Updating row $rowIndex, col $notesCol with notes: $notes");
         await _leadSheet!.values.insertValue(
           notes,
           column: notesCol,
           row: rowIndex,
+          // important so it doesn’t insert new row
         );
+      } else {
+        print("⚠️ 'Follow Up Notes' column not found");
       }
 
       print('✅ Successfully updated lead: $leadName');
@@ -442,8 +508,13 @@ class GoogleSheetsService {
       // Auto initialize if attendance sheet is null
       if (_attandance == null) {
         print('⚠️ Attendance sheet not initialized, trying to init...');
-        await init(spreadsheetId, attandanceSheetName: attendanceSheetName);
-
+        // await init(spreadsheetId, attandanceSheetName: attendanceSheetName);
+        await init(
+          '1OLdGHGbhzvKlUxGhE-8m2kNpuSBSGuhi3oMClzbKyEE',
+          leadSheetName:
+              'form responses', // or whatever your lead sheet is called
+          attandanceSheetName: 'attandence', // matches your log
+        );
         if (_attandance == null) {
           throw Exception(
             '❌ Attendance sheet still not found after init. Please check your sheet.',
@@ -695,7 +766,7 @@ class GoogleSheetsService {
 
       // Prepare updated row data
       final updatedRow = [
-        updatedAttendance.timestamp,
+         DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now()),
         updatedAttendance.riderName,
         updatedAttendance.phoneNumber,
         updatedAttendance.programBooked,

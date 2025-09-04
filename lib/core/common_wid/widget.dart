@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:rutsnrides_admin/core/theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CommonButton extends StatelessWidget {
@@ -70,5 +72,55 @@ String formatTimestamp(String timestamp) {
   } catch (e) {
     print("❌ Error formatting timestamp: $e");
     return timestamp; // fallback
+  }
+}
+
+class CustomTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hintText;
+  final IconData prefixIcon;
+  final bool obscureText;
+  final Widget? suffixIcon;
+
+  const CustomTextField({
+    required this.controller,
+    required this.hintText,
+    required this.prefixIcon,
+    this.obscureText = false,
+    this.suffixIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      style: TextStyle(
+        color: Colors.grey[800],
+        fontSize: 16,
+      ),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(
+          color: Colors.grey[500],
+          fontSize: 16,
+        ),
+        prefixIcon: Icon(
+          prefixIcon,
+          color: AppTheme.enquiryPrimary.withOpacity(0.7),
+        ),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: Colors.grey[50],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+    );
   }
 }

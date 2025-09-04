@@ -1,4 +1,4 @@
-package com.example.rutsnrides_admin
+package com.dhigrowth.rutsnrides
 
 import io.flutter.embedding.android.FlutterActivity
 

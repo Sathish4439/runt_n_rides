@@ -599,7 +599,7 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
           onTap: () {
             showAttendanceSheet(attendance, context, controller);
           },
-          child: Icon(Icons.update),
+          child: Icon(Icons.follow_the_signs),
         ),
         onTap: () => showAttendanceDetails(attendance),
       ),
