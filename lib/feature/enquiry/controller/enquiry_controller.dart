@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/gsheet_services.dart';
+import 'package:rutsnrides_admin/core/services/api_service.dart';
+import 'package:rutsnrides_admin/core/services/endpoint.dart';
+
+import 'package:rutsnrides_admin/core/utils/utils.dart';
 import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
 import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
 import 'package:rutsnrides_admin/feature/ongoing/model/attandance_model.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class EnquiryController extends GetxController {
+  final api = ApiService();
   var leads = <Lead>[].obs;
   var leadsLoading = false.obs;
   var followUpLoading = false.obs;
@@ -21,6 +25,12 @@ class EnquiryController extends GetxController {
   final phone = TextEditingController();
   var selectedProgram = "".obs;
   final programDetails = TextEditingController();
+  var headSize = TextEditingController();
+  var pantSize = TextEditingController();
+  var height = TextEditingController();
+  var weight = TextEditingController();
+  var shirtSize = TextEditingController();
+
   final bookingDate = TextEditingController();
   final preferredSessionDate = TextEditingController();
   final totalFee = TextEditingController();
@@ -40,6 +50,8 @@ class EnquiryController extends GetxController {
 
   void setEnquiryData(Lead lead) {
     // Text fields
+
+    printData(lead.toJson());
     riderName.text = lead.fullName;
     age.text = lead.age.toString();
     parentName.text = ""; // Not in Lead
@@ -89,9 +101,11 @@ class EnquiryController extends GetxController {
     'Adult One-on-One - One Day: Rs.4999 / Monthly: Rs.30,000',
     'Custom Training Plan',
     'open session - Rs.1600/day',
+    "Dirt Bike Training - Beginner Level",
   ];
 
   // Date pickers
+
   Future<void> pickDate(
     BuildContext context,
     TextEditingController controller,
@@ -103,53 +117,140 @@ class EnquiryController extends GetxController {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      controller.text = "${picked.day}-${picked.month}-${picked.year}";
+      // Format as ISO "yyyy-MM-dd"
+      final formattedDate = DateFormat('yyyy-MM-dd').format(picked);
+      controller.text = formattedDate;
     }
   }
 
   // Submit function
 
+  Future<void> updateFollowUp(String id, String note, DateTime date) async {
+    try {
+      followUpLoading(true);
+      final response = await api.put(
+        "${EndPoints.form}/$id", // replace with your API endpoint
+        data: {
+          "followUpNotes": note,
+          "followUpDate": date.toIso8601String(),
+          "status": "Follow Up",
+        },
+      );
+
+      printData(response);
+
+      if (response.statusCode == 200) {
+        printData("✅ Follow-up updated: ${response.data}");
+      } else {
+        printData(
+          "⚠️ Failed: ${response.statusCode} ${response.statusMessage}",
+        );
+      }
+    } catch (e) {
+      printData("❌ Error updating follow-up: $e");
+    } finally {
+      followUpLoading(false);
+      loadEnquirey();
+    }
+  }
+
   // Add loading state
   var loadSubmit = false.obs;
 
   // Your existing code...
-
-  void submitBooking(Booking bookingData, Attendance attandance) async {
+  Future<void> submitBookingAndAttendance(
+    Booking bookingData,
+    Attendance attendance,
+  ) async {
     try {
-      loadSubmit.value = true; // Start loading
+      loadSubmit.value = true;
 
-      final googleSheetsService = GoogleSheetsService();
-      await googleSheetsService.insertBooking(
-        SheetId.bookingSheet,
-        "Form responses 1",
-        bookingData,
+      // Booking body
+      var bookingJson = {
+        "timestamp": bookingData.timestamp,
+        "fullNameOfRider": bookingData.riderName,
+        "phoneNumber": bookingData.phone,
+        "programBooked": bookingData.programBooked,
+        "programDetails": bookingData.programDetails,
+        "bookingDate": bookingData.bookingDate,
+        "sessionDate": bookingData.preferredSessionDate,
+        "trainingSlot": bookingData.trainingSlot,
+        "sessionType": bookingData.sessionType,
+        "bikeRental": bookingData.bikeRental,
+        "gearRental": bookingData.gearRental,
+        "totalProgramFee": bookingData.totalFee,
+        "paymentStatus": bookingData.paymentStatus,
+        "amountPaid": bookingData.amountPaid,
+        "paymentMode": bookingData.paymentMode,
+        "paymentProof": bookingData.paymentProof,
+        "ageOfRider": bookingData.riderAge,
+        "parentName": bookingData.parentName,
+        "bookingType": bookingData.bookingType,
+        "receivedAmount": bookingData.receivedAmount,
+        "height": bookingData.height,
+        "weight": bookingData.weight,
+        "headSize": bookingData.headSize,
+        "pantSize": bookingData.pantSize,
+        "shirtSize": bookingData.shirtSize,
+      };
+
+      // First call booking API
+      var bookingRes = await api.post(
+        EndPoints.createBooking,
+        data: bookingJson,
       );
 
-      await googleSheetsService.insertAttendance(
-        SheetId.followBack,
-        "attandence",
-        attandance,
-      );
+      if (bookingRes.data['success']) {
+        printData("✅ Booking created: ${bookingRes.data}");
 
-      // Show success message
-      Get.snackbar(
-        'Success',
-        'Booking submitted successfully!',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
+        // After booking, create attendance
+        await createAttendance(attendance);
+
+        showSuccess("Booking & Attendance created successfully!");
+        Get.back();
+      } else {
+        showError("Booking failed: ${bookingRes.data['message']}");
+      }
     } catch (e) {
-      // Show error message
-      Get.snackbar(
-        'Error',
-        'Failed to submit booking: ${e.toString()}',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      showError("❌ Failed to submit: ${e.toString()}");
+    } finally {}
+  }
+
+  Future<void> createAttendance(Attendance attendance) async {
+    try {
+      var attendanceJson = {
+        "riderName": attendance.riderName,
+        "phoneNumber": attendance.phoneNumber,
+        "programBooked": attendance.programBooked,
+        "sessionDate": attendance.sessionDate,
+        "sessionNumber": attendance.sessionNumber ?? 0,
+        "totalSessions": attendance.totalSessions ?? 0,
+        "attendanceStatus": attendance.attendanceStatus ?? "",
+        "sessionDuration": attendance.sessionDuration ?? "",
+        "sessionCompletion": attendance.sessionCompletion ?? "",
+        "sessionsCompleted": attendance.sessionsCompleted ?? 0,
+        "fullDaysDone": attendance.fullDaysDone ?? 0,
+        "halfDaysDone": attendance.halfDaysDone ?? 0,
+        "sessionsRemaining": attendance.sessionsRemaining ?? 0,
+        // "//trainingStarted": attendance.//trainingStarted ?? false,
+      };
+
+      var res = await api.post(
+        EndPoints.createAttendence,
+        data: attendanceJson,
       );
+
+      if (res.data['success']) {
+        printData("✅ Attendance created: ${res.data}");
+      } else {
+        showError("Attendance failed: ${res.data['message']}");
+      }
+    } catch (e) {
+      showError("❌ Attendance error: ${e.toString()}");
     } finally {
       loadSubmit.value = false;
       clearBookingForm();
-      // Stop loading
+      Get.back();
     }
   }
 
@@ -167,22 +268,24 @@ class EnquiryController extends GetxController {
 
   var bookingStatus = "".obs;
 
-  var trainingStarted = "".obs;
-
   /// Load leads from Google Sheets
-  Future<void> loadLeads() async {
+  Future<void> loadEnquirey() async {
     try {
       leadsLoading(true);
-      final googleSheets = GoogleSheetsService();
-      await googleSheets.init(
-        SheetId.enquiryForm,
-        leadSheetName: "Form responses 1",
-      );
-      final fetchedLeads = await googleSheets.fetchLeads();
 
-      leads.assignAll(fetchedLeads);
+      var res = await api.get(EndPoints.getAllformEnquiry);
+
+      if (res.data['success']) {
+        var li = (res.data['leads'] as List)
+            .map((e) => Lead.fromJson(e))
+            .toList();
+
+        if (li.isNotEmpty) {
+          leads.value = li;
+        }
+      }
     } catch (e) {
-      print("Error loading leads: $e");
+      printData(e);
     } finally {
       leadsLoading(false);
     }
@@ -215,18 +318,7 @@ class EnquiryController extends GetxController {
     final Map<DateTime, List<Lead>> grouped = {};
 
     for (var lead in leads) {
-      // timestampDate is already DateTime
-      final DateTime tsDay = DateTime(
-        lead.timestampDate.year,
-        lead.timestampDate.month,
-        lead.timestampDate.day,
-      );
-
-      // Add lead to map by timestampDate
-      if (!grouped.containsKey(tsDay)) grouped[tsDay] = [];
-      grouped[tsDay]!.add(lead);
-
-      // Parse followUpDate (String) to DateTime
+      // If lead has a follow-up date, use only that
       if (lead.followUpDate != null && lead.followUpDate.isNotEmpty) {
         final DateTime? fuDate = parseFollowUpDate(lead.followUpDate);
         if (fuDate != null) {
@@ -237,8 +329,19 @@ class EnquiryController extends GetxController {
           );
           if (!grouped.containsKey(fuDay)) grouped[fuDay] = [];
           grouped[fuDay]!.add(lead);
+          continue; // ✅ skip adding timestampDate
         }
       }
+
+      // Otherwise group by timestampDate
+      final DateTime tsDay = DateTime(
+        lead.timestampDate.year,
+        lead.timestampDate.month,
+        lead.timestampDate.day,
+      );
+
+      if (!grouped.containsKey(tsDay)) grouped[tsDay] = [];
+      grouped[tsDay]!.add(lead);
     }
 
     return grouped;
@@ -271,6 +374,11 @@ class EnquiryController extends GetxController {
     receivedAmount.clear();
     // Reset loading
     isLoading.value = false;
+    pantSize.clear();
+    headSize.clear();
+    shirtSize.clear();
+    height.clear();
+    weight.clear();
 
     print("✅ Booking form cleared!");
   }
@@ -301,5 +409,17 @@ class EnquiryController extends GetxController {
     isLoading.value = false;
 
     super.onClose();
+  }
+
+  Future<void> deleteLead(String id) async {
+    try {
+      var res = await api.delete("${EndPoints.form}/$id");
+
+      if (res.data['success']) {
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
+      }
+    } catch (e) {}
   }
 }

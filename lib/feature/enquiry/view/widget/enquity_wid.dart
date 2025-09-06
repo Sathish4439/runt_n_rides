@@ -3,7 +3,8 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:rutsnrides_admin/core/common_wid/widget.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/gsheet_services.dart';
+
+import 'package:rutsnrides_admin/core/utils/utils.dart';
 import 'package:rutsnrides_admin/feature/enquiry/controller/enquiry_controller.dart';
 import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
 import 'package:rutsnrides_admin/feature/enquiry/view/confrim_booking_page.dart';
@@ -44,14 +45,36 @@ Widget buildLeadsForSelectedDay(Map<DateTime, List<Lead>> events) {
   );
 }
 
-Widget buildAllLeadsList(Map<DateTime, List<Lead>> events) {
+Widget buildAllLeadsList(
+  Map<DateTime, List<Lead>> events,
+  Function(Lead) onDelete,
+) {
   final allLeads = events.values.expand((leads) => leads).toList();
 
   return ListView.builder(
     itemCount: allLeads.length,
     itemBuilder: (context, index) {
       final lead = allLeads[index];
-      return buildLeadCard(lead, context);
+      return Dismissible(
+        key: Key(lead.id.toString()), // make sure each lead has a unique id
+        direction: DismissDirection.endToStart, // swipe from right to left
+        background: Container(
+          color: Colors.red,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const Icon(Icons.delete, color: Colors.white),
+        ),
+        onDismissed: (direction) {
+          // Call your delete function
+          onDelete(lead);
+
+          // Optional: show a snackbar
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('${lead.fullName} deleted')));
+        },
+        child: buildLeadCard(lead, context),
+      );
     },
   );
 }
@@ -174,30 +197,14 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
                 text: "Follow Up",
 
                 onTap: () {
-                  showFollowUpDialog(
+                  showFollowUpBottomSheet(
                     context: context,
                     onConfirm: (pickedDate, note) async {
-                      final googleSheetsService = GoogleSheetsService();
-
-                      bool val = await googleSheetsService.initSheets(
-                        SheetId.enquiryForm,
-                        "enquiry",
+                      await controller.updateFollowUp(
+                        lead.id,
+                        note,
+                        pickedDate,
                       );
-
-                      if (val) {
-                        controller.followUpLoading(true);
-                        final success = await googleSheetsService
-                            .updateLeadFollowUp(
-                              leadName: lead.fullName,
-                              status: 'Follow Up',
-                              followUpDate: pickedDate,
-                              notes: note,
-                            );
-                        controller.followUpLoading(false);
-                        print("success $success");
-
-                        await controller.loadLeads();
-                      }
                     },
                   );
                 },
@@ -210,91 +217,115 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
   );
 }
 
-void showFollowUpDialog({
+void showFollowUpBottomSheet({
   required BuildContext context,
   required Function(DateTime selectedDate, String note) onConfirm,
 }) {
   final TextEditingController notesController = TextEditingController();
   final ValueNotifier<DateTime?> selectedDateNotifier = ValueNotifier(null);
 
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text("Follow Up"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Date Picker Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ValueListenableBuilder<DateTime?>(
-                    valueListenable: selectedDateNotifier,
-                    builder: (context, selectedDate, _) {
-                      return Text(
-                        selectedDate == null
-                            ? "No date chosen"
-                            : "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
-                      );
-                    },
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      DateTime? picked = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        selectedDateNotifier.value = picked; // ✅ updates UI
-                        print("picked $picked");
-                      }
-                    },
-                    child: Text("Pick Date"),
-                  ),
-                ],
-              ),
-              SizedBox(height: 15),
-
-              // Notes Input
-              TextField(
-                controller: notesController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: "Notes",
-                  border: OutlineInputBorder(),
+  Get.bottomSheet(
+    Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ],
-          ),
+            ),
+            Text(
+              "Follow Up",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 20),
+
+            // Date Picker Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ValueListenableBuilder<DateTime?>(
+                  valueListenable: selectedDateNotifier,
+                  builder: (context, selectedDate, _) {
+                    return Text(
+                      selectedDate == null
+                          ? "No date chosen"
+                          : "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+                      style: TextStyle(fontSize: 16),
+                    );
+                  },
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      selectedDateNotifier.value = picked; // ✅ updates UI
+                      print("picked $picked");
+                    }
+                  },
+                  child: Text("Pick Date"),
+                ),
+              ],
+            ),
+            SizedBox(height: 15),
+
+            // Notes Input
+            TextField(
+              controller: notesController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: "Notes",
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Action Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(onPressed: () => Get.back(), child: Text("Cancel")),
+                ElevatedButton(
+                  onPressed: () {
+                    final selectedDate = selectedDateNotifier.value;
+                    if (selectedDate == null || notesController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Please pick a date and enter notes"),
+                        ),
+                      );
+                      return;
+                    }
+                    onConfirm(selectedDate, notesController.text);
+                    Get.back();
+                  },
+                  child: Text("Save"),
+                ),
+              ],
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final selectedDate = selectedDateNotifier.value;
-              if (selectedDate == null || notesController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Please pick a date and enter notes"),
-                  ),
-                );
-                return;
-              }
-              onConfirm(selectedDate, notesController.text);
-              Navigator.pop(context);
-            },
-            child: Text("Save"),
-          ),
-        ],
-      );
-    },
+      ),
+    ),
+    isScrollControlled: true, // ✅ makes sheet expand fully if needed
   );
 }
 

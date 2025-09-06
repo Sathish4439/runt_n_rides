@@ -1,21 +1,23 @@
 class Attendance {
-  final String timestamp;          // Timestamp of booking or session
-  final String riderName;          // Rider's full name
-  final String phoneNumber;        // Rider phone number
-  final String programBooked;      // Program name
-  final String sessionDate;        // Date of this session
-  final int sessionNumber;         // Session number (1,2,3...)
-  final int totalSessions;         // Total sessions assigned
-  final String attendanceStatus;   // Present / Absent / Cancelled
-  final String sessionDuration;    // Duration of session (optional)
-  final String sessionCompletion;  // Completed / Incomplete
-  final int sessionsCompleted;     // Count of sessions completed so far
-  final int fullDaysDone;          // Count of full days done
-  final int halfDaysDone;          // Count of half days done
-  final int sessionsRemaining;     // Total remaining sessions
+  final String? id; // MongoDB document _id
+  final String riderName; // Rider's full name
+  final String phoneNumber; // Rider phone number
+  final String programBooked; // Program name
+  final String sessionDate; // Date of this session (ISO String)
+  final int sessionNumber; // Session number (1,2,3...)
+  final int totalSessions; // Total sessions assigned
+  final String attendanceStatus; // Present / Absent / Late / Cancelled
+  final String sessionDuration; // Full Day / Half Day
+  final String sessionCompletion; // Completed / Partial / Not Started
+  final int sessionsCompleted; // Count of sessions completed so far
+  final int fullDaysDone; // Count of full days done
+  final int halfDaysDone; // Count of half days done
+  final int sessionsRemaining; // Total remaining sessions
+  final String? createdAt; // Auto timestamp from Mongo
+  final String? updatedAt; // Auto timestamp from Mongo
 
   Attendance({
-    required this.timestamp,
+    this.id,
     required this.riderName,
     required this.phoneNumber,
     required this.programBooked,
@@ -29,74 +31,64 @@ class Attendance {
     required this.fullDaysDone,
     required this.halfDaysDone,
     required this.sessionsRemaining,
+    this.createdAt,
+    this.updatedAt,
   });
 
-  /// Convert from Google Sheets row (List<dynamic>) to Attendance object
-  factory Attendance.fromList(List<dynamic> row) {
-    final safeRow = List<String>.generate(14, (i) {
-      if (i < row.length && row[i] != null) {
-        return row[i].toString().trim();
-      }
-      return '';
-    });
-
-    int parseInt(String value) => int.tryParse(value) ?? 0;
-
+  /// Convert JSON (from Mongo API) to Attendance object
+  factory Attendance.fromJson(Map<String, dynamic> json) {
     return Attendance(
-      timestamp: safeRow[0],
-      riderName: safeRow[1],
-      phoneNumber: safeRow[2],
-      programBooked: safeRow[3],
-      sessionDate: safeRow[4],
-      sessionNumber: parseInt(safeRow[5]),
-      totalSessions: parseInt(safeRow[6]),
-      attendanceStatus: safeRow[7],
-      sessionDuration: safeRow[8],
-      sessionCompletion: safeRow[9],
-      sessionsCompleted: parseInt(safeRow[10]),
-      fullDaysDone: parseInt(safeRow[11]),
-      halfDaysDone: parseInt(safeRow[12]),
-      sessionsRemaining: parseInt(safeRow[13]),
+      id: json["_id"] ?? "",
+      riderName: json["riderName"] ?? "",
+      phoneNumber: json["phoneNumber"] ?? "",
+      programBooked: json["programBooked"] ?? "",
+      sessionDate: json["sessionDate"] ?? "",
+      sessionNumber: json["sessionNumber"] ?? 0,
+      totalSessions: json["totalSessions"] ?? 0,
+      attendanceStatus: json["attendanceStatus"] ?? "Present",
+      sessionDuration: json["sessionDuration"] ?? "Full Day",
+      sessionCompletion: json["sessionCompletion"] ?? "Not Started",
+      sessionsCompleted: json["sessionsCompleted"] ?? 0,
+      fullDaysDone: json["fullDaysDone"] ?? 0,
+      halfDaysDone: json["halfDaysDone"] ?? 0,
+      sessionsRemaining: json["sessionsRemaining"] ?? 0,
+      createdAt: json["createdAt"] ?? "",
+      updatedAt: json["updatedAt"] ?? "",
     );
   }
 
-  /// Convert Attendance object to List for Google Sheets
-  List<String> toList() {
-    return [
-      timestamp,
-      riderName,
-      phoneNumber,
-      programBooked,
-      sessionDate,
-      sessionNumber.toString(),
-      totalSessions.toString(),
-      attendanceStatus,
-      sessionDuration,
-      sessionCompletion,
-      sessionsCompleted.toString(),
-      fullDaysDone.toString(),
-      halfDaysDone.toString(),
-      sessionsRemaining.toString(),
-    ];
-  }
-
-  /// Convert Attendance object to JSON
+  /// Convert Attendance object to JSON (for POST/PUT requests)
   Map<String, dynamic> toJson() {
     return {
-      "Timestamp": timestamp,
-      "Rider Name": riderName,
-      "Phone Number": phoneNumber,
-      "Program Booked": programBooked,
-      "Session Date": sessionDate,
-      "Session Number": sessionNumber,
-      "Total Sessions": totalSessions,
-      "Attendance Status": attendanceStatus,
-      "Session Duration": sessionDuration,
-      "Session Completion": sessionCompletion,
-      "Sessions Completed": sessionsCompleted,
-      "Full Days Done": fullDaysDone,
-      "Half Days Done": halfDaysDone,
-      "Sessions Remaining": sessionsRemaining,
+      "riderName": riderName,
+      "phoneNumber": phoneNumber,
+      "programBooked": programBooked,
+      "sessionDate": sessionDate,
+      "sessionNumber": sessionNumber,
+      "totalSessions": totalSessions,
+      "attendanceStatus": attendanceStatus,
+      "sessionDuration": sessionDuration,
+      "sessionCompletion": sessionCompletion,
+      "sessionsCompleted": sessionsCompleted,
+      "fullDaysDone": fullDaysDone,
+      "halfDaysDone": halfDaysDone,
+      "sessionsRemaining": sessionsRemaining,
     };
   }
+
+  static final defaultData = Attendance(
+    riderName: "",
+    phoneNumber: "",
+    programBooked: "",
+    sessionDate: "",
+    sessionNumber: 0,
+    totalSessions: 0,
+    attendanceStatus: "",
+    sessionDuration: "",
+    sessionCompletion: "",
+    sessionsCompleted: 0,
+    fullDaysDone: 0,
+    halfDaysDone: 0,
+    sessionsRemaining: 0,
+  );
 }

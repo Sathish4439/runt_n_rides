@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/gsheet_services.dart';
+
 import 'package:rutsnrides_admin/core/theme/app_theme.dart';
 import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
 import 'package:rutsnrides_admin/feature/booking/controller/booking_controller.dart';
@@ -125,10 +125,46 @@ class _BookingPageState extends State<BookingPage> {
               return ListView.builder(
                 itemCount: filteredBookings.length,
                 itemBuilder: (context, index) {
-                  return buildBookingCard(
-                    filteredBookings[index],
-                    context,
-                    controller,
+                  final booking = filteredBookings[index];
+
+                  return Dismissible(
+                    key: Key(booking.id ?? index.toString()), // unique key
+                    direction:
+                        DismissDirection.endToStart, // swipe from right to left
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: const Icon(Icons.delete, color: Colors.white),
+                    ),
+                    confirmDismiss: (direction) async {
+                      bool confirm = false;
+                      await Get.defaultDialog(
+                        title: 'Confirm Delete',
+                        middleText:
+                            'Are you sure you want to delete this booking?',
+                        textCancel: 'No',
+                        textConfirm: 'Yes',
+                        onConfirm: () {
+                          confirm = true;
+                          Get.back();
+                        },
+                        onCancel: () {
+                          confirm = false;
+                        },
+                      );
+                      return confirm;
+                    },
+                    onDismissed: (direction) async {
+                      // Remove from controller's booking list
+                      controller.deleteBooking(booking.id!);
+                      Get.snackbar(
+                        'Deleted',
+                        'Booking for ${booking.riderName} has been deleted.',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    },
+                    child: buildBookingCard(booking, context, controller),
                   );
                 },
               );

@@ -3,13 +3,14 @@ import 'dart:ui';
 
 import 'package:get/get.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/gsheet_services.dart';
+import 'package:rutsnrides_admin/core/services/api_service.dart';
+import 'package:rutsnrides_admin/core/services/endpoint.dart';
+
 import 'package:rutsnrides_admin/core/theme/app_theme.dart';
+import 'package:rutsnrides_admin/core/utils/utils.dart';
 import 'package:rutsnrides_admin/feature/ongoing/model/attandance_model.dart';
 
 class AttendanceController extends GetxController {
-  final GoogleSheetsService _sheetsService = GoogleSheetsService();
-
   // Observables
   var isLoading = false.obs;
   var attendanceList = <Attendance>[].obs;
@@ -18,17 +19,27 @@ class AttendanceController extends GetxController {
   var searchQuery = ''.obs;
   var stats = <String, dynamic>{}.obs;
 
+  final api = ApiService();
+
   // Fetch all attendance
   Future<void> fetchAttendance() async {
     try {
       isLoading(true);
-      final data = await _sheetsService.fetchAttendanceData(
-        SheetId.followBack,
-        attendanceSheetName: "attandence",
-      );
-      attendanceList.assignAll(data);
-      filteredList.assignAll(data);
-      await _calculateStats();
+      attendanceList.clear();
+      var res = await api.get(EndPoints.getAllAttendance);
+
+      if (res.data['success']) {
+        var li = (res.data['sessions'] as List)
+            .map((e) => Attendance.fromJson(e))
+            .toList();
+
+        if (li.isNotEmpty) {
+          attendanceList.value = li;
+          filteredList.value = li;
+        }
+
+        printData("attendanceList ${attendanceList.length}");
+      }
     } catch (e) {
       Get.snackbar('Error', 'Failed to fetch attendance: $e');
     } finally {
@@ -65,7 +76,7 @@ class AttendanceController extends GetxController {
       filteredList.value = attendanceList;
     } else {
       filteredList.value = attendanceList
-          .where((attendance) => attendance.attendanceStatus == status)
+          .where((attendance) => attendance.sessionCompletion == status)
           .toList();
     }
     _calculateStats();
@@ -111,27 +122,14 @@ class AttendanceController extends GetxController {
 
   Future<void> updateAddress(Attendance updatedAttendance) async {
     try {
-      var res = await GoogleSheetsService().updateAttendanceDetails(
-        updatedAttendance,
+      var res = await api.put(
+        "${EndPoints.attendance}/${updatedAttendance.id}",
+        data: updatedAttendance.toJson(),
       );
 
-      if (res) {
-        Get.snackbar(
-          "Success",
-          "Attendance updated for ${updatedAttendance.riderName}",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: const Color(0xFFC8E6C9),
-          colorText: AppTheme.bookingPrimary,
-        );
-      }
+      printData(res);
     } catch (e) {
-      Get.snackbar(
-        "Update Failed",
-        "",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: const Color(0xFFFFCDD2),
-        colorText: const Color(0xFFB71C1C),
-      );
+      printData(e);
     } finally {
       fetchAttendance();
     }
@@ -158,5 +156,17 @@ class AttendanceController extends GetxController {
     stats.clear();
 
     super.onClose();
+  }
+
+  Future<void> deleteAttendance(String s) async {
+    try {
+      var res = await api.delete("${EndPoints.attendance}/$s");
+
+      printData(res);
+    } catch (e) {
+      printData(e);
+    } finally {
+      await fetchAttendance();
+    }
   }
 }

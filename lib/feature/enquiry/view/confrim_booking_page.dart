@@ -143,7 +143,33 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 controller.selectedBookingType,
               ),
 
-              SizedBox(height: 32),
+              //  SizedBox(height: 32),
+              _buildSectionHeader("Custome details"),
+              _buildTextField(
+                "Height",
+                controller.height,
+                keyboard: TextInputType.number,
+              ),
+              _buildTextField(
+                "Weight",
+                controller.weight,
+                keyboard: TextInputType.number,
+              ),
+              _buildTextField(
+                "Head Size",
+                controller.headSize,
+                keyboard: TextInputType.number,
+              ),
+              _buildTextField(
+                "Pant Size",
+                controller.pantSize,
+                keyboard: TextInputType.number,
+              ),
+              _buildTextField(
+                "Shirt Size",
+                controller.shirtSize,
+                keyboard: TextInputType.number,
+              ),
 
               Center(
                 child: Obx(
@@ -178,6 +204,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                             if (_formKey.currentState!.validate()) {
                               // Create booking data and submit
                               final booking = Booking(
+                                id: "",
                                 paymentProof: controller.paymentProof.value,
                                 timestamp: DateTime.now().millisecondsSinceEpoch
                                     .toString(),
@@ -190,6 +217,11 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                     controller.preferredSessionDate.text,
                                 trainingSlot: controller.trainingSlot.value,
                                 sessionType: controller.sessionType.value,
+                                headSize: controller.headSize.text,
+                                pantSize: controller.pantSize.text,
+                                shirtSize: controller.shirtSize.text,
+                                height: controller.height.text,
+                                weight: controller.weight.text,
                                 bikeRental: controller.bikeRental.value
                                     ? "Yes"
                                     : "No",
@@ -215,28 +247,33 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                     ) ??
                                     0.0,
                                 bookingStatus: controller.bookingStatus.value,
-                                trainingStarted:
-                                    controller.trainingStarted.value,
+                                
                               );
 
                               final attendance = Attendance(
-                                timestamp: DateTime.now().toString(),
+                                id: "",
+                                //trainingStarted: false,
+                                createdAt: "",
+                                updatedAt: "",
                                 riderName: controller.riderName.text,
                                 phoneNumber: controller.phone.text,
                                 programBooked: controller.selectedProgram.value,
                                 sessionDate: '',
                                 sessionNumber: 0,
                                 totalSessions: 0,
-                                attendanceStatus: "",
-                                sessionDuration: "",
-                                sessionCompletion: "",
+                                attendanceStatus: "Absent",
+                                sessionDuration: "Full Day",
+                                sessionCompletion: "Not Started",
                                 sessionsCompleted: 0,
                                 fullDaysDone: 0,
                                 halfDaysDone: 0,
                                 sessionsRemaining: 0,
                               );
 
-                              controller.submitBooking(booking, attendance);
+                              controller.submitBookingAndAttendance(
+                                booking,
+                                attendance,
+                              );
                             }
                           },
                     child: Ink(

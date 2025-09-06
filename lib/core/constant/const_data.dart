@@ -25,5 +25,9 @@ class SheetId {
 class CosntString {
   static final userName = "userName";
   static final password = "password";
+  static final role = "role";
+  static final email = "email";
   static final islogin = "islogin";
+  static final token = "token";
+  static final id = "id";
 }
