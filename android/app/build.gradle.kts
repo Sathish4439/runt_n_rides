@@ -34,8 +34,8 @@ android {
         applicationId = "com.dhigrowth.rutsnrides"
         minSdkVersion(23)
         targetSdk = flutter.targetSdkVersion
-        versionCode = 4
-        versionName = "0.4"
+        versionCode = 5
+        versionName = "0.5"
     }
 
     signingConfigs {
