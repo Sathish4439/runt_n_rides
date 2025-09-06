@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "441719753517",
+    "project_id": "ruts-n-rides",
+    "storage_bucket": "ruts-n-rides.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:441719753517:android:10e0f1ed75b868f6ec61a4",
+        "android_client_info": {
+          "package_name": "com.dhigrowth.rutsnrides"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhJNkMLgx2ZOBXsLTnBJoNXyewX66gpMs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

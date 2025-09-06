@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Add this import
 import 'package:get/get.dart';
@@ -7,10 +8,14 @@ import 'package:rutsnrides_admin/core/dependancy_injection.dart/depandancey_inje
 import 'package:rutsnrides_admin/core/theme/app_theme.dart';
 import 'package:rutsnrides_admin/feature/auth/view/auth_screen.dart';
 import 'package:rutsnrides_admin/feature/main_screen.dart';
+import 'package:rutsnrides_admin/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   DependencyInjection.init();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+);
 
 
   runApp(const MyApp());

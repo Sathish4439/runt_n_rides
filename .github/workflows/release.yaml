@@ -1,0 +1,38 @@
+name: Flutter CI/CD - Firebase Distribution
+
+on:
+  push:
+    branches:
+      - main   # run when code is pushed to main branch
+  pull_request:
+    branches:
+      - main   # run when a PR is opened against main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: setup jdk
+        uses: actions/setup-java@v4
+        with:
+            distribution: 'zulu' # See 'Supported distributions' for available options
+            java-version: '21'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+            flutter-version: 'stable'
+        
+      - name: install dependancy
+        run : flutter pub get
+
+      - name: run test
+        run : flutter test 
+
+      - name: build apk
+        run : flutter build apk
+
+    
