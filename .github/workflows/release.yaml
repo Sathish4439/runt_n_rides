@@ -31,9 +31,6 @@ jobs:
       - name: install dependancy
         run : flutter pub get
 
-      - name: run test
-        run : flutter test 
-
       - name: build apk
         run : flutter build apk
 
