@@ -3,10 +3,10 @@ name: Flutter CI/CD - Firebase Distribution
 on:
   push:
     branches:
-      - main   # run when code is pushed to main branch
+      - github_cicd   # run when code is pushed to main branch
   pull_request:
     branches:
-      - main   # run when a PR is opened against main
+      - github_cicd   # run when a PR is opened against main
 
 jobs:
   build:
