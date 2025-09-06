@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rutsnrides_admin/core/storage/local_storage.dart';
 import 'package:rutsnrides_admin/core/theme/app_theme.dart';
+import 'package:rutsnrides_admin/core/utils/utils.dart';
+import 'package:rutsnrides_admin/feature/auth/controller/auth_controller.dart';
 import 'package:rutsnrides_admin/feature/booking/view/booking_page.dart';
 import 'package:rutsnrides_admin/feature/enquiry/view/enquiry_page.dart';
 import 'package:rutsnrides_admin/feature/ongoing/view/attandance_screen.dart';
@@ -20,18 +23,28 @@ class _MainScreenState extends State<MainScreen> {
     CategoryItem("Ongoing", Icons.timelapse, AppTheme.ongoingPrimary),
   ];
 
+  var controller = Get.put(AuthController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        actions: [
+          IconButton(
+            onPressed: () {
+              showLogoutConfirmation();
+            },
+            icon: Icon(Icons.logout),
+          ),
+        ],
         title: const Text(
           'Ruts N Rides',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
         ),
-        centerTitle: true,
+
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.blueGrey[800],
+        // backgroundColor: Colors.transparent,
+        // foregroundColor: Colors.blueGrey[800],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -48,6 +61,37 @@ class _MainScreenState extends State<MainScreen> {
           },
         ),
       ),
+    );
+  }
+
+  void showLogoutConfirmation() {
+    Get.defaultDialog(
+      title: "Confirm Logout",
+      titleStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      content: Text(
+        "Are you sure you want to logout?",
+        style: TextStyle(fontSize: 16),
+        textAlign: TextAlign.center,
+      ),
+      confirm: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.enquirySecondary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        ),
+        onPressed: () async {
+          // showSuccess("You have been successfully logged out.");
+
+          await controller.logout(context);
+        },
+        child: Text("Yes, Logout"),
+      ),
+      cancel: TextButton(
+        onPressed: () => Get.back(),
+        child: Text("Cancel", style: TextStyle(color: Colors.grey[700])),
+      ),
+      backgroundColor: Colors.white,
+      radius: 8,
     );
   }
 }

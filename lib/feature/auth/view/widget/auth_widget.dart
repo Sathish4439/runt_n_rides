@@ -4,7 +4,6 @@ import 'package:rutsnrides_admin/core/common_wid/widget.dart';
 import 'package:rutsnrides_admin/core/theme/app_theme.dart';
 import 'package:rutsnrides_admin/feature/auth/controller/auth_controller.dart';
 
-
 class SignInWidget extends StatelessWidget {
   const SignInWidget({super.key});
 
@@ -57,7 +56,7 @@ class SignInWidget extends StatelessWidget {
 
           // Username Field
           Text(
-            "Username",
+            "Email",
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w500,
               color: Colors.grey[700],
@@ -66,7 +65,7 @@ class SignInWidget extends StatelessWidget {
           const SizedBox(height: 8),
           CustomTextField(
             controller: controller.usernameController,
-            hintText: "Enter your username",
+            hintText: "Enter Email",
             prefixIcon: Icons.person_outline,
           ),
 
@@ -84,7 +83,7 @@ class SignInWidget extends StatelessWidget {
           Obx(
             () => CustomTextField(
               controller: controller.passwordController,
-              hintText: "Enter your password",
+              hintText: "Enter  password",
               prefixIcon: Icons.lock_outline,
               obscureText: !controller.showPassword.value,
               suffixIcon: IconButton(

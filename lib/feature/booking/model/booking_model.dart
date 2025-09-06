@@ -1,4 +1,5 @@
 class Booking {
+  final String? id; // MongoDB document _id
   final String timestamp;
   final String riderName;
   final String phone;
@@ -7,6 +8,11 @@ class Booking {
   final String bookingDate;
   final String preferredSessionDate;
   final String trainingSlot;
+  final String height;
+  final String weight;
+  final String shirtSize;
+  final String pantSize;
+  final String headSize;
   final String sessionType;
   final String bikeRental;
   final String gearRental;
@@ -20,9 +26,9 @@ class Booking {
   final String bookingType;
   final double receivedAmount;
   final String bookingStatus;
-  final String trainingStarted;
 
   Booking({
+    this.id,
     required this.timestamp,
     required this.riderName,
     required this.phone,
@@ -31,6 +37,11 @@ class Booking {
     required this.bookingDate,
     required this.preferredSessionDate,
     required this.trainingSlot,
+    required this.height,
+    required this.weight,
+    required this.shirtSize,
+    required this.pantSize,
+    required this.headSize,
     required this.sessionType,
     required this.bikeRental,
     required this.gearRental,
@@ -44,114 +55,68 @@ class Booking {
     required this.bookingType,
     required this.receivedAmount,
     required this.bookingStatus,
-    required this.trainingStarted,
   });
 
-  factory Booking.fromList(List<dynamic> row) {
-    final safeRow = List<String>.generate(22, (i) {
-      if (i < row.length && row[i] != null) {
-        return row[i].toString().trim();
-      }
-      return '';
-    });
-
-    double parseCurrency(String value) {
-      final cleaned = value.replaceAll(',', '');
-      final matches = RegExp(r'\d+(\.\d+)?').allMatches(cleaned);
-      return matches.isNotEmpty
-          ? double.tryParse(matches.last.group(0)!) ?? 0.0
-          : 0.0;
-    }
-
-    int parseInt(String value) => int.tryParse(value) ?? 0;
-
+  factory Booking.fromJson(Map<String, dynamic> json) {
     return Booking(
-      timestamp: safeRow[0],
-      riderName: safeRow[1],
-      phone: safeRow[2],
-      programBooked: safeRow[3],
-      programDetails: safeRow[4],
-      bookingDate: safeRow[5],
-      preferredSessionDate: safeRow[6],
-      trainingSlot: safeRow[7],
-      sessionType: safeRow[8],
-      bikeRental: safeRow[9],
-      gearRental: safeRow[10],
-      totalFee: parseCurrency(safeRow[11]),
-      paymentStatus: safeRow[12],
-      amountPaid: parseCurrency(safeRow[13]),
-      paymentMode: safeRow[14],
-      paymentProof: safeRow[15],
-      riderAge: parseInt(safeRow[16]),
-      parentName: safeRow[17],
-      bookingType: safeRow[18],
-      receivedAmount: parseCurrency(safeRow[19]),
-      bookingStatus: safeRow[20],
-      trainingStarted: safeRow[21],
+      id: json["_id"]?.toString(),
+      timestamp: json["timestamp"] ?? "",
+      riderName: json["fullNameOfRider"] ?? "",
+      phone: json["phoneNumber"] ?? "",
+      programBooked: json["programBooked"] ?? "",
+      programDetails: json["programDetails"] ?? "",
+      bookingDate: json["bookingDate"] ?? "",
+      preferredSessionDate: json["sessionDate"] ?? "",
+      trainingSlot: json["trainingSlot"] ?? "",
+      height: json["height"] ?? "",
+      weight: json["weight"] ?? "",
+      shirtSize: json["shirtSize"] ?? "",
+      pantSize: json["pantSize"] ?? "",
+      headSize: json["headSize"] ?? "",
+      sessionType: json["sessionType"] ?? "",
+      bikeRental: json["bikeRental"] ?? "",
+      gearRental: json["gearRental"] ?? "",
+      totalFee: (json["totalProgramFee"] ?? 0).toDouble(),
+      paymentStatus: json["paymentStatus"] ?? "",
+      amountPaid: (json["amountPaid"] ?? 0).toDouble(),
+      paymentMode: json["paymentMode"] ?? "",
+      paymentProof: json["paymentProof"] ?? "",
+      riderAge: json["ageOfRider"] ?? 0,
+      parentName: json["parentName"] ?? "",
+      bookingType: json["bookingType"] ?? "",
+      receivedAmount: (json["receivedAmount"] ?? 0).toDouble(),
+      bookingStatus: json["bookingStatus"] ?? "",
     );
-  }
-
-  List<String> toList() {
-    return [
-      timestamp,
-      riderName,
-      phone,
-      programBooked,
-      programDetails,
-      bookingDate,
-      preferredSessionDate,
-      trainingSlot,
-      sessionType,
-      bikeRental,
-      gearRental,
-      totalFee.toString(),
-      paymentStatus,
-      amountPaid.toString(),
-      paymentMode,
-      paymentProof,
-      riderAge.toString(),
-      parentName,
-      bookingType,
-      receivedAmount.toString(),
-      bookingStatus,
-      trainingStarted,
-    ];
   }
 
   Map<String, dynamic> toJson() {
     return {
-      "Timestamp": timestamp,
-      "Full Name of Rider": riderName,
-      "Phone Number": phone,
-      "Program Booked": programBooked,
-      "Program details": programDetails,
-      "Booking Date": bookingDate,
-      "Session Date (Preferred Date)": preferredSessionDate,
-      "Training Slot": trainingSlot,
-      "Group or Private Session": sessionType,
-      "Bike Rental Required?": bikeRental,
-      "Gear Set Rental Required?": gearRental,
-      "Total Program Fee (₹)": totalFee,
-      "Payment Status": paymentStatus,
-      "Amount Paid (₹)": amountPaid,
-      "Payment Mode": paymentMode,
-      "Proof for the payment": paymentProof,
-      "Age of the Rider": riderAge,
-      "Parent's Name": parentName,
-      "Booking Type": bookingType,
-      "Received Amount": receivedAmount,
-      "Booking Status": bookingStatus,
-      "Training Started": trainingStarted,
+      "timestamp": timestamp,
+      "fullNameOfRider": riderName,
+      "phoneNumber": phone,
+      "programBooked": programBooked,
+      "programDetails": programDetails,
+      "bookingDate": bookingDate,
+      "sessionDate": preferredSessionDate,
+      "trainingSlot": trainingSlot,
+      "height": height,
+      "weight": weight,
+      "shirtSize": shirtSize,
+      "pantSize": pantSize,
+      "headSize": headSize,
+      "sessionType": sessionType,
+      "bikeRental": bikeRental,
+      "gearRental": gearRental,
+      "totalProgramFee": totalFee,
+      "paymentStatus": paymentStatus,
+      "amountPaid": amountPaid,
+      "paymentMode": paymentMode,
+      "paymentProof": paymentProof,
+      "ageOfRider": riderAge,
+      "parentName": parentName,
+      "bookingType": bookingType,
+      "receivedAmount": receivedAmount,
+      "bookingStatus": bookingStatus,
     };
-  }
-
-  /// Pretty print booking with header → value
-  void printBooking() {
-    final data = toJson();
-    print("------ Booking Details ------");
-    data.forEach((key, value) {
-      print("$key: $value");
-    });
-    print("-----------------------------");
   }
 }

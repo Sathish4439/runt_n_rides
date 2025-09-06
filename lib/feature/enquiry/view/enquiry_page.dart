@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rutsnrides_admin/core/common_wid/widget.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/gsheet_services.dart';
+
 import 'package:rutsnrides_admin/feature/enquiry/controller/enquiry_controller.dart';
 import 'package:rutsnrides_admin/feature/enquiry/view/widget/enquity_wid.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -25,7 +25,7 @@ class _EnquiryPageState extends State<EnquiryPage> {
   }
 
   void _loadLeads() async {
-    await controller.loadLeads();
+    await controller.loadEnquirey();
   }
 
   @override
@@ -241,7 +241,9 @@ class _EnquiryPageState extends State<EnquiryPage> {
             Expanded(
               child: controller.selectedDay != null
                   ? buildLeadsForSelectedDay(events)
-                  : buildAllLeadsList(events),
+                  : buildAllLeadsList(events, (lead) async {
+                      await controller.deleteLead(lead.id);
+                    }),
             ),
           ],
         );

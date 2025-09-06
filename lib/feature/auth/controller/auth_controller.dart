@@ -1,23 +1,26 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:rutsnrides_admin/core/constant/const_data.dart';
+import 'package:rutsnrides_admin/core/services/api_service.dart';
+import 'package:rutsnrides_admin/core/services/endpoint.dart';
+import 'package:rutsnrides_admin/core/storage/local_storage.dart';
+import 'package:rutsnrides_admin/core/utils/utils.dart';
 import 'package:rutsnrides_admin/feature/auth/view/auth_screen.dart';
 import 'package:rutsnrides_admin/feature/main_screen.dart';
+import 'package:rutsnrides_admin/main.dart';
 
 class AuthController extends GetxController {
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final api = ApiService();
 
   // Controllers
   var usernameController = TextEditingController();
   var passwordController = TextEditingController();
+  var emailController = TextEditingController();
 
   // UI state
   var showPassword = true.obs;
   var loginLoad = false.obs;
-
-  // Hardcoded credentials
-  final String _validUsername = "@Sales123";
-  final String _validPassword = "Ruts@3067";
 
   // Observable state
   var isLoggedIn = false.obs;
@@ -29,71 +32,74 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
-    loginLoad.value = true;
+    try {
+      loginLoad.value = true;
 
-    final username = usernameController.text.trim();
-    final password = passwordController.text.trim();
+      final username = usernameController.text.trim();
+      final password = passwordController.text.trim();
 
-    await Future.delayed(const Duration(seconds: 1)); // fake loading
+      var bodyJson = {"email": username, "password": password};
 
-    if (username == _validUsername && password == _validPassword) {
-      // Store login info securely
-      await _secureStorage.write(key: "username", value: username);
-      await _secureStorage.write(key: "isLoggedIn", value: "true");
+      var res = await api.post(EndPoints.login, data: bodyJson);
 
-      isLoggedIn.value = true;
-      loginLoad.value = false;
-      
-      Get.snackbar(
-        "Login Successful ✅",
-        "Welcome $username",
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-      );
+      if (res.data['success']) {
+        final user = res.data['user'];
 
-      // Navigate to MainScreen
-      Get.offAll(() => const MainScreen());
-    } else {
-      loginLoad.value = false;
-      Get.snackbar(
-        "Login Failed ❌",
-        "Invalid username or password",
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.TOP,
-      );
+        // Save details securely
+        await SecureStorageService.writeData(CosntString.id, user['id']);
+        await SecureStorageService.writeData(CosntString.email, user['email']);
+        await SecureStorageService.writeData(CosntString.islogin, "true");
+        await SecureStorageService.writeData(
+          CosntString.userName,
+          user['fullName'],
+        );
+        await SecureStorageService.writeData(CosntString.role, user['role']);
+        await SecureStorageService.writeData(
+          CosntString.token,
+          res.data['accessToken'],
+        );
+      }
+    } catch (e) {
+      printData(e);
+    } finally {
+      loginLoad.value = false; // Stop loader
+
+      checkLoginStatus();
+
+      usernameController.clear();
+      passwordController.clear();
     }
   }
 
-  Future<void> logout() async {
-    await _secureStorage.deleteAll();
+  Future<void> logout(BuildContext context) async {
+    await SecureStorageService.deleteAllData();
     isLoggedIn.value = false;
 
-    Get.snackbar(
-      "Logged Out",
-      "You have been successfully logged out",
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.TOP,
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => AuthScreen()),
+      (route) => false, // clears all previous routes
     );
 
-    // Navigate to AuthScreen after logout
-    Get.offAll(() => const AuthScreen());
+    showSuccess("You have been successfully logged out");
+
+    checkLoginStatus();
   }
 
   Future<void> checkLoginStatus() async {
     try {
       debugPrint("🔍 Checking login status...");
-      
-      final status = await _secureStorage.read(key: "isLoggedIn");
+
+      final status = await SecureStorageService.readData(CosntString.islogin);
       debugPrint("📊 Login status from storage: '$status'");
-      
+
       final currentRoute = Get.currentRoute;
       debugPrint("📍 Current route: $currentRoute");
 
-      final bool shouldNavigateToMain = status == "true" && currentRoute != '/main';
-      final bool shouldNavigateToAuth = status != "true" && currentRoute != '/auth';
+      final bool shouldNavigateToMain =
+          status == "true" && currentRoute != '/main';
+      final bool shouldNavigateToAuth =
+          status != "true" && currentRoute != '/auth';
 
       debugPrint("🚦 Should navigate to Main: $shouldNavigateToMain");
       debugPrint("🚦 Should navigate to Auth: $shouldNavigateToAuth");
@@ -109,16 +115,17 @@ class AuthController extends GetxController {
       } else {
         // Just update the status without navigation
         isLoggedIn.value = status == "true";
-        debugPrint("📌 Already on correct screen, status updated to: ${isLoggedIn.value}");
+        debugPrint(
+          "📌 Already on correct screen, status updated to: ${isLoggedIn.value}",
+        );
       }
-      
     } catch (e) {
       debugPrint("❌ Error checking login status: $e");
       isLoggedIn.value = false;
-      
+
       final currentRoute = Get.currentRoute;
       debugPrint("📍 Current route during error: $currentRoute");
-      
+
       // Only navigate to auth if not already there
       if (currentRoute != '/auth') {
         debugPrint("⚠️ Fallback navigation to AuthScreen due to error");

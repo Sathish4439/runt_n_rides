@@ -92,12 +92,18 @@ class BookingBottomSheet extends StatelessWidget {
 
 Booking bookingFromLead(Lead lead) {
   return Booking(
+    id: "",
     timestamp: lead.timestamp, // keep same timestamp
     riderName: lead.fullName,
     phone: lead.whatsapp,
     programBooked: lead.programInterest,
     programDetails: "",
-    bookingDate: "", // can reformat if needed
+    bookingDate: "",
+    height: "",
+    weight: "",
+    headSize: "",
+    pantSize: "",
+    shirtSize: "", // can reformat if needed
     preferredSessionDate: "", // if empty → stays empty
     trainingSlot: "",
     sessionType: "",
@@ -113,7 +119,7 @@ Booking bookingFromLead(Lead lead) {
     bookingType: "",
     receivedAmount: 0.0, // not in Lead
     bookingStatus: '', // not in Lead
-    trainingStarted: '', // not in Lead
+    //trainingStarted: '', // not in Lead
   );
 }
 
@@ -191,54 +197,81 @@ Widget buildFilterSection(BookingController controller) {
 }
 
 Widget buildStatsSummary(BookingController controller) {
-  final bookings = controller.listofBooking;
-  final pending = bookings
-      .where((b) => getBookingStatus(b) == 'PENDING')
-      .length;
-  final confirmed = bookings
-      .where((b) => getBookingStatus(b) == 'CONFIRMED')
-      .length;
-  final paid = bookings.where((b) => getBookingStatus(b) == 'PAID').length;
-  final totalRevenue = bookings.fold(0.0, (sum, b) => sum + b.receivedAmount);
-  final outstanding = bookings.fold(
-    0.0,
-    (sum, b) => sum + (b.totalFee - b.receivedAmount),
-  );
+  return Obx(() {
+    final bookings = controller.listofBooking;
+    print("🔹 Total Bookings: ${bookings.length}");
 
-  return Card(
-    color: Colors.white,
-    margin: const EdgeInsets.symmetric(horizontal: 12),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            buildStatItem('Total', bookings.length.toString(), Colors.blue),
-            const SizedBox(width: 16),
-            buildStatItem('Pending', pending.toString(), Colors.orange),
-            const SizedBox(width: 16),
-            buildStatItem('Confirmed', confirmed.toString(), Colors.green),
-            const SizedBox(width: 16),
-            buildStatItem('Paid', paid.toString(), Colors.purple),
-            const SizedBox(width: 16),
-            buildStatItem(
-              'Revenue',
-              controller.currencyFormat.format(totalRevenue),
-              Colors.teal,
-            ),
-            const SizedBox(width: 16),
-            buildStatItem(
-              'Due',
-              controller.currencyFormat.format(outstanding),
-              Colors.red,
-            ),
-          ],
+    final pending = bookings.where((b) {
+      final status = getBookingStatus(b);
+      print("➡️ Booking ID: ${b.id}, Status: $status (Checking for PENDING)");
+      return status == 'PENDING';
+    }).length;
+    print("✅ Pending Count: $pending");
+
+    final confirmed = bookings.where((b) {
+      final status = getBookingStatus(b);
+      print("➡️ Booking ID: ${b.id}, Status: $status (Checking for CONFIRMED)");
+      return status == 'CONFIRMED';
+    }).length;
+    print("✅ Confirmed Count: $confirmed");
+
+    final paid = bookings.where((b) {
+      final status = getBookingStatus(b);
+      print("➡️ Booking ID: ${b.id}, Status: $status (Checking for PAID)");
+      return status == 'PAID';
+    }).length;
+    print("✅ Paid Count: $paid");
+
+    final totalRevenue = bookings.fold(0.0, (sum, b) {
+      print("💰 Adding Revenue: ${b.receivedAmount} from Booking ID: ${b.id}");
+      return sum + b.receivedAmount;
+    });
+    print("💰 Total Revenue: $totalRevenue");
+
+    final outstanding = bookings.fold(0.0, (sum, b) {
+      final due = b.totalFee - b.receivedAmount;
+      print(
+        "⚠️ Outstanding for Booking ID: ${b.id} = ${b.totalFee} - ${b.receivedAmount} = $due",
+      );
+      return sum + due;
+    });
+    print("⚠️ Total Outstanding: $outstanding");
+
+    return Card(
+      color: Colors.white,
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              buildStatItem('Total', bookings.length.toString(), Colors.blue),
+              const SizedBox(width: 16),
+              buildStatItem('Pending', pending.toString(), Colors.orange),
+              const SizedBox(width: 16),
+              buildStatItem('Confirmed', confirmed.toString(), Colors.green),
+              const SizedBox(width: 16),
+              buildStatItem('Paid', paid.toString(), Colors.purple),
+              const SizedBox(width: 16),
+              buildStatItem(
+                'Revenue',
+                controller.currencyFormat.format(totalRevenue),
+                Colors.teal,
+              ),
+              const SizedBox(width: 16),
+              buildStatItem(
+                'Due',
+                controller.currencyFormat.format(outstanding),
+                Colors.red,
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  });
 }
 
 Widget buildStatItem(String label, String value, Color color) {
@@ -332,7 +365,6 @@ Widget buildBookingCard(
   final bookingDate = parseDate(booking.bookingDate);
   final sessionDate = parseDate(booking.preferredSessionDate);
 
-  //  booking.printBooking();
   return Card(
     color: Colors.white,
     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
