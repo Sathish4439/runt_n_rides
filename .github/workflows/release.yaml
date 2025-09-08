@@ -3,35 +3,45 @@ name: Flutter CI/CD - Firebase Distribution
 on:
   push:
     branches:
-      - github_cicd   # run when code is pushed to main branch
+      - github_cicd   # run when code is pushed to github_cicd branch
   pull_request:
     branches:
-      - github_cicd   # run when a PR is opened against main
+      - github_cicd   # run when a PR is opened against github_cicd branch
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: setup jdk
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-            distribution: 'zulu' # See 'Supported distributions' for available options
-            java-version: '21'
+          distribution: 'zulu'
+          java-version: '17' 
 
-      - name: Setup Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-            channel: 'stable'
-            flutter-version: '3.35.3'
+          channel: 'stable'
+          flutter-version: 
 
-        
-      - name: install dependancy
-        run : flutter pub get
+      - name: Install dependencies
+        run: flutter pub get
 
-      - name: build apk
-        run : flutter build apk --release
+      # 👇 Decode keystore from GitHub Secret
+      - name: Decode Keystore
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/key.jks
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
-    
+      # 👇 Build signed release APK
+      - name: Build APK
+        run: flutter build apk --release
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
