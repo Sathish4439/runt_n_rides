@@ -3,10 +3,10 @@ name: Flutter CI/CD - Firebase Distribution
 on:
   push:
     branches:
-      - github_cicd   # run when code is pushed to github_cicd branch
+      - main   # run when code is pushed to github_cicd branch
   pull_request:
     branches:
-      - github_cicd   # run when a PR is opened against github_cicd branch
+      - main   # run when a PR is opened against github_cicd branch
 
 jobs:
   build:
@@ -38,7 +38,7 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
-      # 👇 Build signed release APK
+      # 👇 Build signed release APK++
       - name: Build APK
         run: flutter build apk --release
         env:
