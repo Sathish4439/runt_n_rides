@@ -25,5 +25,5 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.themeData,
       home: AuthScreen(), 
     );
-  }
+  } 
 }
