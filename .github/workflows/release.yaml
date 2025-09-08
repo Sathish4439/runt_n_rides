@@ -32,6 +32,6 @@ jobs:
         run : flutter pub get
 
       - name: build apk
-        run : flutter build apk
+        run : flutter build apk --release
 
     
