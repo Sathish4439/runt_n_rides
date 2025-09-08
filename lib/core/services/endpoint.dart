@@ -20,4 +20,7 @@ class EndPoints {
   //form
   static final form = "form";
   static final getAllformEnquiry = "$form/";
+
+  static final lapsRoute = "laps_route";
+  static final laps = "laps";
 }

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:rutsnrides_admin/core/theme/app_theme.dart';
 import 'package:rutsnrides_admin/core/utils/utils.dart';
 import 'package:rutsnrides_admin/feature/ongoing/controller/attandance_controller.dart';
+import 'package:rutsnrides_admin/feature/ongoing/laps_screen.dart';
 import 'package:rutsnrides_admin/feature/ongoing/model/attandance_model.dart';
 
 class AttendanceBottomSheet extends StatefulWidget {
@@ -576,12 +577,30 @@ Widget buildAttendanceCard(
           // Text('Date: ${attendance.sessionDate}'),
         ],
       ),
-      trailing: GestureDetector(
-        onTap: () {
-          showAttendanceSheet(attendance, context, controller);
-        },
-        child: Icon(Icons.follow_the_signs),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min, // 👈 Add this
+        children: [
+          GestureDetector(
+            onTap: () {
+              showAttendanceSheet(attendance, context, controller);
+            },
+            child: const Icon(Icons.follow_the_signs),
+          ),
+
+          SizedBox(width: 10),
+
+          GestureDetector(
+            onTap: () {
+              Get.to(() => LapsScreen(attendance: attendance));
+            },
+            child: Container(
+              decoration: BoxDecoration(),
+              child: Icon(Icons.watch_later_outlined),
+            ),
+          ),
+        ],
       ),
+
       onTap: () => showAttendanceDetails(attendance),
     ),
   );
