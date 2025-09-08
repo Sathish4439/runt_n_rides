@@ -23,6 +23,7 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_secure_storage: ^9.2.4
   connectivity_plus: ^6.1.5
+  firebase_core: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +39,3 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - assets/google_credentials.json
