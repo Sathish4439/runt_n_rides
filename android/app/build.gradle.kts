@@ -35,10 +35,10 @@ android {
 
     defaultConfig {
         applicationId = "com.dhigrowth.rutsnrides"
-        minSdkVersion(23)
+        minSdkVersion(24)
         targetSdk = flutter.targetSdkVersion
-        versionCode = 5
-        versionName = "0.5"
+        versionCode = 6
+        versionName = "0.6"
     }
 
     signingConfigs {

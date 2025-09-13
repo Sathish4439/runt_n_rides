@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
 import 'package:rutsnrides_admin/feature/enquiry/controller/enquiry_controller.dart';
 import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
+import 'package:rutsnrides_admin/feature/enquiry/view/widget/enquity_wid.dart';
 import 'package:rutsnrides_admin/feature/ongoing/model/attandance_model.dart';
 
 class ConfirmBookingPage extends StatefulWidget {
@@ -143,8 +144,10 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 controller.selectedBookingType,
               ),
 
-              //  SizedBox(height: 32),
-              _buildSectionHeader("Custome details"),
+              ImagePickerWidget(),
+
+              SizedBox(height: 20),
+              _buildSectionHeader("Customer details"),
               _buildTextField(
                 "Height",
                 controller.height,
@@ -247,7 +250,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                     ) ??
                                     0.0,
                                 bookingStatus: controller.bookingStatus.value,
-                                
                               );
 
                               final attendance = Attendance(

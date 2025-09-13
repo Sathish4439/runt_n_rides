@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
 import 'package:rutsnrides_admin/core/services/api_service.dart';
@@ -35,7 +38,8 @@ class EnquiryController extends GetxController {
   final preferredSessionDate = TextEditingController();
   final totalFee = TextEditingController();
   final amtPaid = TextEditingController();
-  final isLoading = false.obs;
+  final isLoading = false.obs;// reactive variable
+  final ImagePicker picker = ImagePicker();
 
   // Dropdown values
   var trainingSlot = ''.obs;
@@ -48,6 +52,24 @@ class EnquiryController extends GetxController {
   var bikeRental = false.obs;
   var gearRental = false.obs;
 
+  
+  Future<void> pickAndUpload(File imageFile) async {
+    try {
+      final response = await api.postFile(
+        EndPoints.upload,
+        fileKey: "paymentProof",
+        filePath: imageFile.path,
+      );
+
+      if (response.statusCode == 200) {
+        paymentProof.value = response.data['filename'];
+      } else {
+        Get.snackbar("Error", "Upload failed");
+      }
+    } catch (e) {
+      Get.snackbar("Error", e.toString());
+    }
+  }
   void setEnquiryData(Lead lead) {
     // Text fields
 

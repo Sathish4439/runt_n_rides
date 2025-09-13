@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rutsnrides_admin/core/common_wid/widget.dart';
+import 'package:rutsnrides_admin/core/services/endpoint.dart';
 import 'package:rutsnrides_admin/feature/booking/controller/booking_controller.dart';
 import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
 import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
@@ -378,13 +380,33 @@ Widget buildBookingCard(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  booking.riderName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      booking.riderName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FullScreenImagePage(
+                              imageUrl:
+                                  "${EndPoints.fetch}/${booking.paymentProof}",
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text("View Proof"),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),

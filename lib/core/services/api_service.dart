@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
 import 'package:rutsnrides_admin/core/services/endpoint.dart';
 
-import 'package:get/get.dart' hide Response;
+import 'package:get/get.dart' hide Response, FormData, MultipartFile;
 import 'package:rutsnrides_admin/core/storage/local_storage.dart'; // for isLoggedIn (assuming you're using GetX)
 
 class ApiService {
@@ -79,6 +79,33 @@ class ApiService {
       throw _handleDioError(e);
     }
   }
+
+  Future<Response<T>> postFile<T>(
+  String path, {
+  required String fileKey, // e.g., "paymentProof"
+  required String filePath,
+  Map<String, dynamic>? data,
+}) async {
+  try {
+    final formData = FormData.fromMap({
+      ...?data,
+      fileKey: await MultipartFile.fromFile(filePath, filename: filePath.split("/").last),
+    });
+
+    return await _dio.post<T>(
+      path,
+      data: formData,
+      options: Options(
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      ),
+    );
+  } on DioError catch (e) {
+    throw _handleDioError(e);
+  }
+}
+
 
   Future<Response<T>> post<T>(
     String path, {

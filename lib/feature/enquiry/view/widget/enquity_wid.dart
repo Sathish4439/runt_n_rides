@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:rutsnrides_admin/core/common_wid/widget.dart';
 import 'package:rutsnrides_admin/core/constant/const_data.dart';
+import 'package:rutsnrides_admin/core/services/endpoint.dart';
 
 import 'package:rutsnrides_admin/core/utils/utils.dart';
 import 'package:rutsnrides_admin/feature/enquiry/controller/enquiry_controller.dart';
@@ -497,4 +502,74 @@ void addNewLead(BuildContext context) async {
       ],
     ),
   );
+}
+
+class ImagePickerWidget extends StatelessWidget {
+  var controller = Get.put(EnquiryController());
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Row(
+        children: [
+          Obx(() {
+            if (controller.paymentProof.value.isNotEmpty) {
+              return Image.network(
+                "${EndPoints.fetch}/${controller.paymentProof.value}",
+                height: 200,
+              );
+            } else {
+              return Container(
+                height: 100,
+                color: Colors.grey[300],
+                child: Icon(Icons.image, size: 100),
+              );
+            }
+          }),
+          SizedBox(width: 20),
+          CommonButton(
+            text: "Pick Image",
+            onTap: () async {
+              final pickedFile = await ImagePicker().pickImage(
+                source: ImageSource.gallery,
+              );
+              if (pickedFile != null) {
+                File file = File(pickedFile.path);
+                controller.pickAndUpload(file);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+class FullScreenImagePage extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImagePage({required this.imageUrl, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: const Text("Image Viewer"),
+      ),
+      body: Container(
+        color: Colors.black,
+        child: PhotoView(
+          imageProvider: NetworkImage(imageUrl),
+          minScale: PhotoViewComputedScale.contained,
+          maxScale: PhotoViewComputedScale.covered * 3.0,
+          backgroundDecoration: const BoxDecoration(
+            color: Colors.black,
+          ),
+        ),
+      ),
+    );
+  }
 }
