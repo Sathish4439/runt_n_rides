@@ -29,40 +29,40 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
     super.initState();
   }
 
-bool validateData() {
-  final age = int.tryParse(controller.age.text.trim()) ?? 0;
-  final totalFee = int.tryParse(controller.totalFee.text.trim()) ?? 0;
-  final amtPaid = int.tryParse(controller.amtPaid.text.trim()) ?? 0;
-  final receivedAmount = int.tryParse(controller.receivedAmount.text.trim()) ?? 0;
+  bool validateData() {
+    final age = int.tryParse(controller.age.text.trim()) ?? 0;
+    final totalFee = int.tryParse(controller.totalFee.text.trim()) ?? 0;
+    final amtPaid = int.tryParse(controller.amtPaid.text.trim()) ?? 0;
+    final receivedAmount =
+        int.tryParse(controller.receivedAmount.text.trim()) ?? 0;
 
-  // Common fee validations
-  if (totalFee == 0) {
-    showError("Total fee is required");
-    return false;
-  }
-
-  if (amtPaid == 0) {
-    showError("Amount paid is required");
-    return false;
-  }
-
-  if (receivedAmount == 0) {
-    showError("Received amount is required");
-    return false;
-  }
-
-  // ✅ Extra required fields if age <= 12
-  if (age <= 12) {
-    if (controller.parentName.text.trim().isEmpty) {
-      showError("Parent's name is required for students under 12");
+    // Common fee validations
+    if (totalFee == 0) {
+      showError("Total fee is required");
       return false;
     }
-    // Add more child-only validations here if needed
+
+    if (amtPaid == 0) {
+      showError("Amount paid is required");
+      return false;
+    }
+
+    if (receivedAmount == 0) {
+      showError("Received amount is required");
+      return false;
+    }
+
+    // ✅ Extra required fields if age <= 12
+    if (age <= 12) {
+      if (controller.parentName.text.trim().isEmpty) {
+        showError("Parent's name is required for students under 12");
+        return false;
+      }
+      // Add more child-only validations here if needed
+    }
+
+    return true; // ✅ Passed all checks
   }
-
-  return true; // ✅ Passed all checks
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -246,7 +246,7 @@ bool validateData() {
                     ),
                     onPressed: controller.loadSubmit.value
                         ? null // Disable button when loading
-                        : () {
+                        : () async {
                             if (validateData()) {
                               if (_formKey.currentState!.validate()) {
                                 // Create booking data and submit
@@ -324,7 +324,7 @@ bool validateData() {
                                   sessionsRemaining: 0,
                                 );
 
-                                controller.submitBookingAndAttendance(
+                                await controller.submitBookingAndAttendance(
                                   booking,
                                   attendance,
                                 );
