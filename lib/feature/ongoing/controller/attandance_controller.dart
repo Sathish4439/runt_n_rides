@@ -1,13 +1,13 @@
 // attendance_controller.dart
 import 'dart:async';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/api_service.dart';
-import 'package:rutsnrides_admin/core/services/endpoint.dart';
-import 'package:rutsnrides_admin/core/theme/app_theme.dart';
-import 'package:rutsnrides_admin/core/utils/utils.dart';
-import 'package:rutsnrides_admin/feature/ongoing/model/attandance_model.dart';
-import 'package:rutsnrides_admin/feature/ongoing/model/lap_model.dart';
+import 'package:RUTSNRIDES/core/constant/const_data.dart';
+import 'package:RUTSNRIDES/core/services/api_service.dart';
+import 'package:RUTSNRIDES/core/services/endpoint.dart';
+import 'package:RUTSNRIDES/core/theme/app_theme.dart';
+import 'package:RUTSNRIDES/core/utils/utils.dart';
+import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
+import 'package:RUTSNRIDES/feature/ongoing/model/lap_model.dart';
 
 class AttendanceController extends GetxController {
   // Observables

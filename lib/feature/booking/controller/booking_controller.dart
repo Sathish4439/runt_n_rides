@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/api_service.dart';
-import 'package:rutsnrides_admin/core/services/endpoint.dart';
-import 'package:rutsnrides_admin/core/utils/utils.dart';
-import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
+import 'package:RUTSNRIDES/core/constant/const_data.dart';
+import 'package:RUTSNRIDES/core/services/api_service.dart';
+import 'package:RUTSNRIDES/core/services/endpoint.dart';
+import 'package:RUTSNRIDES/core/utils/utils.dart';
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
 
 class BookingController extends GetxController {
   var loadBooking = false.obs;

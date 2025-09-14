@@ -1,20 +1,20 @@
 import 'package:dio/dio.dart';
-import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/endpoint.dart';
+import 'package:RUTSNRIDES/core/constant/const_data.dart';
+import 'package:RUTSNRIDES/core/services/endpoint.dart';
 
 import 'package:get/get.dart' hide Response, FormData, MultipartFile;
-import 'package:rutsnrides_admin/core/storage/local_storage.dart'; // for isLoggedIn (assuming you're using GetX)
+import 'package:RUTSNRIDES/core/storage/local_storage.dart'; // for isLoggedIn (assuming you're using GetX)
 
 class ApiService {
   final Dio _dio;
 
   ApiService()
-      : _dio = Dio(
-          BaseOptions(
-            baseUrl: EndPoints.baseUrl,
-            headers: {'Content-Type': 'application/json'},
-          ),
-        ) {
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: EndPoints.baseUrl,
+          headers: {'Content-Type': 'application/json'},
+        ),
+      ) {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -35,7 +35,9 @@ class ApiService {
         },
         onResponse: (response, handler) {
           print('✅ RESPONSE ✅');
-          print('URL: ${response.requestOptions.baseUrl}${response.requestOptions.path}');
+          print(
+            'URL: ${response.requestOptions.baseUrl}${response.requestOptions.path}',
+          );
           print('Status Code: ${response.statusCode}');
           print('Data: ${response.data}');
           print('--------------------------------');
@@ -51,7 +53,7 @@ class ApiService {
             // 🚫 Handle 401 globally
             if (e.response?.statusCode == 401) {
               await SecureStorageService.deleteAllData();
-             
+
               print("⚠️ Session expired. User logged out.");
             }
           } else {
@@ -81,31 +83,29 @@ class ApiService {
   }
 
   Future<Response<T>> postFile<T>(
-  String path, {
-  required String fileKey, // e.g., "paymentProof"
-  required String filePath,
-  Map<String, dynamic>? data,
-}) async {
-  try {
-    final formData = FormData.fromMap({
-      ...?data,
-      fileKey: await MultipartFile.fromFile(filePath, filename: filePath.split("/").last),
-    });
+    String path, {
+    required String fileKey, // e.g., "paymentProof"
+    required String filePath,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        ...?data,
+        fileKey: await MultipartFile.fromFile(
+          filePath,
+          filename: filePath.split("/").last,
+        ),
+      });
 
-    return await _dio.post<T>(
-      path,
-      data: formData,
-      options: Options(
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      ),
-    );
-  } on DioError catch (e) {
-    throw _handleDioError(e);
+      return await _dio.post<T>(
+        path,
+        data: formData,
+        options: Options(headers: {"Content-Type": "multipart/form-data"}),
+      );
+    } on DioError catch (e) {
+      throw _handleDioError(e);
+    }
   }
-}
-
 
   Future<Response<T>> post<T>(
     String path, {
@@ -199,7 +199,9 @@ class ApiService {
       } else if (e.type == DioErrorType.cancel) {
         return Exception('Request was cancelled.');
       } else {
-        return Exception('Network error. Please check your internet connection.');
+        return Exception(
+          'Network error. Please check your internet connection.',
+        );
       }
     }
   }

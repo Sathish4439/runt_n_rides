@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/core/constant/const_data.dart';
+import 'package:RUTSNRIDES/core/constant/const_data.dart';
 
-import 'package:rutsnrides_admin/core/theme/app_theme.dart';
-import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
-import 'package:rutsnrides_admin/feature/booking/controller/booking_controller.dart';
+import 'package:RUTSNRIDES/core/theme/app_theme.dart';
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
+import 'package:RUTSNRIDES/feature/booking/controller/booking_controller.dart';
 import 'package:intl/intl.dart';
-import 'package:rutsnrides_admin/feature/booking/view/widget/booking_wid.dart';
+import 'package:RUTSNRIDES/feature/booking/view/widget/booking_wid.dart';
 
 class BookingPage extends StatefulWidget {
   @override

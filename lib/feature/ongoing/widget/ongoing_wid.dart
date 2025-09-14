@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:rutsnrides_admin/core/theme/app_theme.dart';
-import 'package:rutsnrides_admin/core/utils/utils.dart';
-import 'package:rutsnrides_admin/feature/ongoing/controller/attandance_controller.dart';
-import 'package:rutsnrides_admin/feature/ongoing/laps_screen.dart';
-import 'package:rutsnrides_admin/feature/ongoing/model/attandance_model.dart';
+import 'package:RUTSNRIDES/core/theme/app_theme.dart';
+import 'package:RUTSNRIDES/core/utils/utils.dart';
+import 'package:RUTSNRIDES/feature/ongoing/controller/attandance_controller.dart';
+import 'package:RUTSNRIDES/feature/ongoing/laps_screen.dart';
+import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 
 class AttendanceBottomSheet extends StatefulWidget {
   final Attendance attendance;

@@ -1,5 +1,6 @@
 class EndPoints {
-  static final baseUrl = "https://api.rutsnrides.com/api/";
+ // static final baseUrl = "https://api.rutsnrides.com/api/";
+  static final baseUrl = "https://images-upload.rutsnrides.com/api/";
   //static final baseUrl = "http://192.168.31.86:8080/api/";
 
   //auth

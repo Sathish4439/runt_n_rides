@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/core/storage/local_storage.dart';
-import 'package:rutsnrides_admin/core/theme/app_theme.dart';
-import 'package:rutsnrides_admin/core/utils/utils.dart';
-import 'package:rutsnrides_admin/feature/auth/controller/auth_controller.dart';
-import 'package:rutsnrides_admin/feature/booking/view/booking_page.dart';
-import 'package:rutsnrides_admin/feature/enquiry/view/enquiry_page.dart';
-import 'package:rutsnrides_admin/feature/ongoing/view/attandance_screen.dart';
+import 'package:RUTSNRIDES/core/storage/local_storage.dart';
+import 'package:RUTSNRIDES/core/theme/app_theme.dart';
+import 'package:RUTSNRIDES/core/utils/utils.dart';
+import 'package:RUTSNRIDES/feature/auth/controller/auth_controller.dart';
+import 'package:RUTSNRIDES/feature/booking/view/booking_page.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/enquiry_page.dart';
+import 'package:RUTSNRIDES/feature/ongoing/view/attandance_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

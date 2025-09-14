@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:rutsnrides_admin/core/theme/app_theme.dart';
+import 'package:RUTSNRIDES/core/theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CommonButton extends StatelessWidget {
@@ -47,8 +47,7 @@ class CommonButton extends StatelessWidget {
               )
             : Text(
                 text,
-                style: TextStyle(
-                    color: textColor, fontWeight: FontWeight.bold),
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
               ),
       ),
     );
@@ -62,7 +61,6 @@ Future<void> makePhoneCall(String phoneNumber) async {
     throw Exception('Could not launch $url');
   }
 }
-
 
 String formatTimestamp(String timestamp) {
   try {
@@ -95,16 +93,10 @@ class CustomTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       obscureText: obscureText,
-      style: TextStyle(
-        color: Colors.grey[800],
-        fontSize: 16,
-      ),
+      style: TextStyle(color: Colors.grey[800], fontSize: 16),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(
-          color: Colors.grey[500],
-          fontSize: 16,
-        ),
+        hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
         prefixIcon: Icon(
           prefixIcon,
           color: AppTheme.enquiryPrimary.withOpacity(0.7),

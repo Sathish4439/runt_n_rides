@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/core/common_wid/widget.dart';
-import 'package:rutsnrides_admin/core/services/endpoint.dart';
-import 'package:rutsnrides_admin/feature/booking/controller/booking_controller.dart';
-import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
-import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
-import 'package:rutsnrides_admin/feature/enquiry/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/core/common_wid/widget.dart';
+import 'package:RUTSNRIDES/core/services/endpoint.dart';
+import 'package:RUTSNRIDES/feature/booking/controller/booking_controller.dart';
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
 // import your Booking model
 
 class BookingBottomSheet extends StatelessWidget {

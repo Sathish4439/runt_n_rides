@@ -2,11 +2,11 @@ import 'dart:ffi' hide Size;
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
-import 'package:rutsnrides_admin/feature/enquiry/controller/enquiry_controller.dart';
-import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
-import 'package:rutsnrides_admin/feature/enquiry/view/widget/enquity_wid.dart';
-import 'package:rutsnrides_admin/feature/ongoing/model/attandance_model.dart';
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 
 class ConfirmBookingPage extends StatefulWidget {
   final Lead enquirydata;
