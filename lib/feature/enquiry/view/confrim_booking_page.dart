@@ -324,10 +324,10 @@ bool validateData() {
                                   sessionsRemaining: 0,
                                 );
 
-                                // controller.submitBookingAndAttendance(
-                                //   booking,
-                                //   attendance,
-                                // );
+                                controller.submitBookingAndAttendance(
+                                  booking,
+                                  attendance,
+                                );
                               }
                             }
                           },
