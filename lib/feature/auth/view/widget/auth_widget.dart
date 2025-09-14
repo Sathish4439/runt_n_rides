@@ -85,7 +85,7 @@ class SignInWidget extends StatelessWidget {
               controller: controller.passwordController,
               hintText: "Enter  password",
               prefixIcon: Icons.lock_outline,
-              obscureText: !controller.showPassword.value,
+              obscureText: controller.showPassword.value,
               suffixIcon: IconButton(
                 onPressed: () {
                   controller.showPassword.value =
