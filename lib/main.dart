@@ -1,10 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/core/dependancy_injection.dart/depandancey_injection.dart';
-import 'package:rutsnrides_admin/core/theme/app_theme.dart';
-import 'package:rutsnrides_admin/feature/auth/view/auth_screen.dart';
-import 'package:rutsnrides_admin/firebase_options.dart';
+import 'package:RUTSNRIDES/core/dependancy_injection.dart/depandancey_injection.dart';
+import 'package:RUTSNRIDES/core/theme/app_theme.dart';
+import 'package:RUTSNRIDES/feature/auth/view/auth_screen.dart';
+import 'package:RUTSNRIDES/firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.themeData,
-      home: AuthScreen(), 
+      home: AuthScreen(),
     );
-  } 
+  }
 }

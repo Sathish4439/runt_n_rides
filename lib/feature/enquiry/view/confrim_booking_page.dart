@@ -1,11 +1,13 @@
 import 'dart:ffi' hide Size;
 
+import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/feature/booking/model/booking_model.dart';
-import 'package:rutsnrides_admin/feature/enquiry/controller/enquiry_controller.dart';
-import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
-import 'package:rutsnrides_admin/feature/ongoing/model/attandance_model.dart';
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 
 class ConfirmBookingPage extends StatefulWidget {
   final Lead enquirydata;
@@ -25,6 +27,41 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
 
     controller.setEnquiryData(widget.enquirydata);
     super.initState();
+  }
+
+  bool validateData() {
+    final age = int.tryParse(controller.age.text.trim()) ?? 0;
+    final totalFee = int.tryParse(controller.totalFee.text.trim()) ?? 0;
+    final amtPaid = int.tryParse(controller.amtPaid.text.trim()) ?? 0;
+    final receivedAmount =
+        int.tryParse(controller.receivedAmount.text.trim()) ?? 0;
+
+    // Common fee validations
+    if (totalFee == 0) {
+      showError("Total fee is required");
+      return false;
+    }
+
+    if (amtPaid == 0) {
+      showError("Amount paid is required");
+      return false;
+    }
+
+    if (receivedAmount == 0) {
+      showError("Received amount is required");
+      return false;
+    }
+
+    // ✅ Extra required fields if age <= 12
+    if (age <= 12) {
+      if (controller.parentName.text.trim().isEmpty) {
+        showError("Parent's name is required for students under 12");
+        return false;
+      }
+      // Add more child-only validations here if needed
+    }
+
+    return true; // ✅ Passed all checks
   }
 
   @override
@@ -61,8 +98,12 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
               _buildTextField(
                 "Parent's Name",
                 controller.parentName,
-                isRequired: true,
+                isRequired:
+                    (int.tryParse(controller.age.text.trim()) ?? 0) <= 12
+                    ? true
+                    : false,
               ),
+
               _buildTextField(
                 "Phone",
                 controller.phone,
@@ -116,16 +157,19 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 "Total Fee (₹)",
                 controller.totalFee,
                 keyboard: TextInputType.number,
+                isRequired: true,
               ),
               _buildTextField(
                 "Paid Amount (₹)",
                 controller.amtPaid,
                 keyboard: TextInputType.number,
+                isRequired: true,
               ),
               _buildTextField(
                 "Received Amount  (₹)",
                 controller.receivedAmount,
                 keyboard: TextInputType.number,
+                isRequired: true,
               ),
               _buildDropdown(
                 "Payment Status",
@@ -143,8 +187,10 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 controller.selectedBookingType,
               ),
 
-              //  SizedBox(height: 32),
-              _buildSectionHeader("Custome details"),
+              ImagePickerWidget(),
+
+              SizedBox(height: 20),
+              _buildSectionHeader("Customer details"),
               _buildTextField(
                 "Height",
                 controller.height,
@@ -200,80 +246,89 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                     ),
                     onPressed: controller.loadSubmit.value
                         ? null // Disable button when loading
-                        : () {
-                            if (_formKey.currentState!.validate()) {
-                              // Create booking data and submit
-                              final booking = Booking(
-                                id: "",
-                                paymentProof: controller.paymentProof.value,
-                                timestamp: DateTime.now().millisecondsSinceEpoch
-                                    .toString(),
-                                riderName: controller.riderName.text,
-                                phone: controller.phone.text,
-                                programBooked: controller.selectedProgram.value,
-                                programDetails: controller.programDetails.text,
-                                bookingDate: controller.bookingDate.text,
-                                preferredSessionDate:
-                                    controller.preferredSessionDate.text,
-                                trainingSlot: controller.trainingSlot.value,
-                                sessionType: controller.sessionType.value,
-                                headSize: controller.headSize.text,
-                                pantSize: controller.pantSize.text,
-                                shirtSize: controller.shirtSize.text,
-                                height: controller.height.text,
-                                weight: controller.weight.text,
-                                bikeRental: controller.bikeRental.value
-                                    ? "Yes"
-                                    : "No",
-                                gearRental: controller.gearRental.value
-                                    ? "Yes"
-                                    : "No",
-                                totalFee:
-                                    double.tryParse(controller.totalFee.text) ??
-                                    0.0,
-                                paymentStatus: controller.paymentStatus.value,
-                                amountPaid:
-                                    double.tryParse(controller.amtPaid.text) ??
-                                    0.0,
-                                paymentMode: controller.paymentMode.value,
-                                riderAge:
-                                    int.tryParse(controller.age.text) ?? 0,
-                                parentName: controller.parentName.text,
-                                bookingType:
-                                    controller.selectedBookingType.value,
-                                receivedAmount:
-                                    double.tryParse(
-                                      controller.receivedAmount.text,
-                                    ) ??
-                                    0.0,
-                                bookingStatus: controller.bookingStatus.value,
-                                
-                              );
+                        : () async {
+                            if (validateData()) {
+                              if (_formKey.currentState!.validate()) {
+                                // Create booking data and submit
+                                final booking = Booking(
+                                  id: "",
+                                  paymentProof: controller.paymentProof.value,
+                                  timestamp: DateTime.now()
+                                      .millisecondsSinceEpoch
+                                      .toString(),
+                                  riderName: controller.riderName.text,
+                                  phone: controller.phone.text,
+                                  programBooked:
+                                      controller.selectedProgram.value,
+                                  programDetails:
+                                      controller.programDetails.text,
+                                  bookingDate: controller.bookingDate.text,
+                                  preferredSessionDate:
+                                      controller.preferredSessionDate.text,
+                                  trainingSlot: controller.trainingSlot.value,
+                                  sessionType: controller.sessionType.value,
+                                  headSize: controller.headSize.text,
+                                  pantSize: controller.pantSize.text,
+                                  shirtSize: controller.shirtSize.text,
+                                  height: controller.height.text,
+                                  weight: controller.weight.text,
+                                  bikeRental: controller.bikeRental.value
+                                      ? "Yes"
+                                      : "No",
+                                  gearRental: controller.gearRental.value
+                                      ? "Yes"
+                                      : "No",
+                                  totalFee:
+                                      double.tryParse(
+                                        controller.totalFee.text,
+                                      ) ??
+                                      0.0,
+                                  paymentStatus: controller.paymentStatus.value,
+                                  amountPaid:
+                                      double.tryParse(
+                                        controller.amtPaid.text,
+                                      ) ??
+                                      0.0,
+                                  paymentMode: controller.paymentMode.value,
+                                  riderAge:
+                                      int.tryParse(controller.age.text) ?? 0,
+                                  parentName: controller.parentName.text,
+                                  bookingType:
+                                      controller.selectedBookingType.value,
+                                  receivedAmount:
+                                      double.tryParse(
+                                        controller.receivedAmount.text,
+                                      ) ??
+                                      0.0,
+                                  bookingStatus: controller.bookingStatus.value,
+                                );
 
-                              final attendance = Attendance(
-                                id: "",
-                                //trainingStarted: false,
-                                createdAt: "",
-                                updatedAt: "",
-                                riderName: controller.riderName.text,
-                                phoneNumber: controller.phone.text,
-                                programBooked: controller.selectedProgram.value,
-                                sessionDate: '',
-                                sessionNumber: 0,
-                                totalSessions: 0,
-                                attendanceStatus: "Absent",
-                                sessionDuration: "Full Day",
-                                sessionCompletion: "Not Started",
-                                sessionsCompleted: 0,
-                                fullDaysDone: 0,
-                                halfDaysDone: 0,
-                                sessionsRemaining: 0,
-                              );
+                                final attendance = Attendance(
+                                  id: "",
+                                  //trainingStarted: false,
+                                  createdAt: "",
+                                  updatedAt: "",
+                                  riderName: controller.riderName.text,
+                                  phoneNumber: controller.phone.text,
+                                  programBooked:
+                                      controller.selectedProgram.value,
+                                  sessionDate: '',
+                                  sessionNumber: 0,
+                                  totalSessions: 0,
+                                  attendanceStatus: "Absent",
+                                  sessionDuration: "Full Day",
+                                  sessionCompletion: "Not Started",
+                                  sessionsCompleted: 0,
+                                  fullDaysDone: 0,
+                                  halfDaysDone: 0,
+                                  sessionsRemaining: 0,
+                                );
 
-                              controller.submitBookingAndAttendance(
-                                booking,
-                                attendance,
-                              );
+                                await controller.submitBookingAndAttendance(
+                                  booking,
+                                  attendance,
+                                );
+                              }
                             }
                           },
                     child: Ink(

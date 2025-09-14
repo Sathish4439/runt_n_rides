@@ -1,4 +1,4 @@
-name: rutsnrides_admin
+name: RUTSNRIDES
 description: "A new Flutter project."
 publish_to: 'none'
 
@@ -24,6 +24,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   connectivity_plus: ^6.1.5
   firebase_core: ^4.1.0
+  slide_countdown: ^2.0.2
+  image_picker: ^1.2.0
+  photo_view: ^0.15.0
 
 dev_dependencies:
   flutter_test:

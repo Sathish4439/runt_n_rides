@@ -1,14 +1,14 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:rutsnrides_admin/core/constant/const_data.dart';
-import 'package:rutsnrides_admin/core/services/api_service.dart';
-import 'package:rutsnrides_admin/core/services/endpoint.dart';
-import 'package:rutsnrides_admin/core/storage/local_storage.dart';
-import 'package:rutsnrides_admin/core/utils/utils.dart';
-import 'package:rutsnrides_admin/feature/auth/view/auth_screen.dart';
-import 'package:rutsnrides_admin/feature/main_screen.dart';
-import 'package:rutsnrides_admin/main.dart';
+import 'package:RUTSNRIDES/core/constant/const_data.dart';
+import 'package:RUTSNRIDES/core/services/api_service.dart';
+import 'package:RUTSNRIDES/core/services/endpoint.dart';
+import 'package:RUTSNRIDES/core/storage/local_storage.dart';
+import 'package:RUTSNRIDES/core/utils/utils.dart';
+import 'package:RUTSNRIDES/feature/auth/view/auth_screen.dart';
+import 'package:RUTSNRIDES/feature/main_screen.dart';
+import 'package:RUTSNRIDES/main.dart';
 
 class AuthController extends GetxController {
   final api = ApiService();

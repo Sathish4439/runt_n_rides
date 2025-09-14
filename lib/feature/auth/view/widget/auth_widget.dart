@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/core/common_wid/widget.dart';
-import 'package:rutsnrides_admin/core/theme/app_theme.dart';
-import 'package:rutsnrides_admin/feature/auth/controller/auth_controller.dart';
+import 'package:RUTSNRIDES/core/common_wid/widget.dart';
+import 'package:RUTSNRIDES/core/theme/app_theme.dart';
+import 'package:RUTSNRIDES/feature/auth/controller/auth_controller.dart';
 
 class SignInWidget extends StatelessWidget {
   const SignInWidget({super.key});
@@ -85,7 +85,7 @@ class SignInWidget extends StatelessWidget {
               controller: controller.passwordController,
               hintText: "Enter  password",
               prefixIcon: Icons.lock_outline,
-              obscureText: !controller.showPassword.value,
+              obscureText: controller.showPassword.value,
               suffixIcon: IconButton(
                 onPressed: () {
                   controller.showPassword.value =

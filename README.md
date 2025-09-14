@@ -1,4 +1,4 @@
-# rutsnrides_admin
+# RUTSNRIDES
 
 A new Flutter project.
 

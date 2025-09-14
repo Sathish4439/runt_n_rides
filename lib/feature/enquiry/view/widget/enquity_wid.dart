@@ -1,13 +1,21 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:RUTSNRIDES/core/storage/local_storage.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:rutsnrides_admin/core/common_wid/widget.dart';
-import 'package:rutsnrides_admin/core/constant/const_data.dart';
+import 'package:photo_view/photo_view.dart';
+import 'package:RUTSNRIDES/core/common_wid/widget.dart';
+import 'package:RUTSNRIDES/core/constant/const_data.dart';
+import 'package:RUTSNRIDES/core/services/endpoint.dart';
 
-import 'package:rutsnrides_admin/core/utils/utils.dart';
-import 'package:rutsnrides_admin/feature/enquiry/controller/enquiry_controller.dart';
-import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
-import 'package:rutsnrides_admin/feature/enquiry/view/confrim_booking_page.dart';
+import 'package:RUTSNRIDES/core/utils/utils.dart';
+import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/confrim_booking_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Widget buildLeadsForSelectedDay(Map<DateTime, List<Lead>> events) {
@@ -497,4 +505,199 @@ void addNewLead(BuildContext context) async {
       ],
     ),
   );
+}
+
+class ImagePickerWidget extends StatelessWidget {
+  final controller = Get.put(EnquiryController());
+  final dio = Dio();
+
+  ImagePickerWidget({super.key});
+
+  Future<Uint8List?> _fetchProtectedImage(String fileName, String token) async {
+    try {
+      final response = await dio.get(
+        "${EndPoints.fetch}/$fileName",
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {"Authorization": "Bearer $token"},
+        ),
+      );
+      return Uint8List.fromList(response.data);
+    } catch (e) {
+      debugPrint("Image fetch failed: $e");
+      return null;
+    }
+  }
+
+  Future<String?> _getToken() async {
+    return await SecureStorageService.readData(CosntString.token);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Row(
+        children: [
+          Obx(() {
+            if (controller.paymentProof.value.isNotEmpty) {
+              return FutureBuilder<String?>(
+                future: _getToken(),
+                builder: (context, tokenSnapshot) {
+                  if (tokenSnapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 100,
+                      width: 100,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final token = tokenSnapshot.data;
+                  if (token == null || token.isEmpty) {
+                    return Container(
+                      height: 100,
+                      width: 100,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.lock, size: 50),
+                    );
+                  }
+
+                  return FutureBuilder<Uint8List?>(
+                    future: _fetchProtectedImage(
+                      controller.paymentProof.value,
+                      token,
+                    ),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const SizedBox(
+                          height: 100,
+                          width: 100,
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      } else if (snapshot.hasData && snapshot.data != null) {
+                        return Image.memory(
+                          snapshot.data!,
+                          height: 100,
+                          fit: BoxFit.contain,
+                        );
+                      } else {
+                        return Container(
+                          height: 100,
+                          width: 100,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.broken_image, size: 50),
+                        );
+                      }
+                    },
+                  );
+                },
+              );
+            } else {
+              return Container(
+                height: 100,
+                width: 100,
+                color: Colors.grey[300],
+                child: const Icon(Icons.image, size: 50),
+              );
+            }
+          }),
+          const SizedBox(width: 20),
+          CommonButton(
+            text: "Pick Image",
+            onTap: () async {
+              final pickedFile = await ImagePicker().pickImage(
+                source: ImageSource.gallery,
+              );
+              if (pickedFile != null) {
+                File file = File(pickedFile.path);
+                controller.pickAndUpload(file);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class FullScreenImagePage extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImagePage({super.key, required this.imageUrl});
+
+  Future<String?> _getToken() async {
+    return await SecureStorageService.readData(CosntString.token);
+  }
+
+  Future<Uint8List?> _fetchProtectedImage(String url, String token) async {
+    try {
+      final response = await Dio().get(
+        url,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {"Authorization": "Bearer $token"},
+        ),
+      );
+      return Uint8List.fromList(response.data);
+    } catch (e) {
+      debugPrint("Image fetch failed: $e");
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: const Text("Image Viewer"),
+      ),
+      body: FutureBuilder<String?>(
+        future: _getToken(),
+        builder: (context, tokenSnapshot) {
+          if (tokenSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final token = tokenSnapshot.data;
+          if (token == null || token.isEmpty) {
+            return const Center(
+              child: Text(
+                "Token not found",
+                style: TextStyle(color: Colors.white),
+              ),
+            );
+          }
+
+          return FutureBuilder<Uint8List?>(
+            future: _fetchProtectedImage(imageUrl, token),
+            builder: (context, imageSnapshot) {
+              if (imageSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (imageSnapshot.hasData && imageSnapshot.data != null) {
+                return PhotoView(
+                  imageProvider: MemoryImage(imageSnapshot.data!),
+                  minScale: PhotoViewComputedScale.contained,
+                  maxScale: PhotoViewComputedScale.covered * 3.0,
+                  backgroundDecoration: const BoxDecoration(
+                    color: Colors.black,
+                  ),
+                );
+              } else {
+                return const Center(
+                  child: Icon(
+                    Icons.broken_image,
+                    color: Colors.white,
+                    size: 80,
+                  ),
+                );
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
 }

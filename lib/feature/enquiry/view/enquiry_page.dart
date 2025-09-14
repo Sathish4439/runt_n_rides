@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rutsnrides_admin/core/common_wid/widget.dart';
-import 'package:rutsnrides_admin/core/constant/const_data.dart';
+import 'package:RUTSNRIDES/core/common_wid/widget.dart';
+import 'package:RUTSNRIDES/core/constant/const_data.dart';
 
-import 'package:rutsnrides_admin/feature/enquiry/controller/enquiry_controller.dart';
-import 'package:rutsnrides_admin/feature/enquiry/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:rutsnrides_admin/feature/enquiry/model/lead_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
