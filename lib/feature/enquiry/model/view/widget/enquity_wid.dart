@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:RUTSNRIDES/core/storage/local_storage.dart';
+import 'package:RUTSNRIDES/core/theme/app_theme.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15,7 +16,7 @@ import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
-import 'package:RUTSNRIDES/feature/enquiry/view/confrim_booking_page.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/view/confrim_booking_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Widget buildLeadsForSelectedDay(Map<DateTime, List<Lead>> events) {
@@ -184,6 +185,10 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 10),
+                  Text(
+                    lead.status,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
                 ],
               ),
             ],
@@ -194,6 +199,9 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
             children: [
               CommonButton(
                 text: "Book",
+                color: lead.status.toLowerCase() == "booked"
+                    ? AppTheme.bookingSecondary
+                    : AppTheme.enquirySecondary,
                 onTap: () async {
                   print(lead.toJson());
                   Get.to(() => ConfirmBookingPage(enquirydata: lead));
@@ -223,6 +231,52 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
       ),
     ),
   );
+}
+
+class MultiDatePickerWidget extends StatelessWidget {
+  var controller = Get.put(EnquiryController());
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ElevatedButton.icon(
+          icon: Icon(Icons.date_range),
+          label: Text("Pick Date"),
+          onPressed: () async {
+            DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+
+            if (picked != null) {
+              controller.addDate(picked);
+            }
+          },
+        ),
+
+        Obx(
+          () => Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: controller.plannedData
+                .map(
+                  (date) => Chip(
+                    label: Text(date),
+                    deleteIcon: Icon(Icons.close),
+                    onDeleted: () => controller.removeDate(date),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
 }
 
 void showFollowUpBottomSheet({
@@ -508,7 +562,7 @@ void addNewLead(BuildContext context) async {
 }
 
 class ImagePickerWidget extends StatelessWidget {
-  final controller = Get.put(EnquiryController());
+  final controller = Get.find<EnquiryController>();
   final dio = Dio();
 
   ImagePickerWidget({super.key});
@@ -523,14 +577,19 @@ class ImagePickerWidget extends StatelessWidget {
         ),
       );
       return Uint8List.fromList(response.data);
-    } catch (e) {
-      debugPrint("Image fetch failed: $e");
+    } catch (e, s) {
+      debugPrint("❌ Image fetch failed: $e\n$s");
       return null;
     }
   }
 
   Future<String?> _getToken() async {
-    return await SecureStorageService.readData(CosntString.token);
+    try {
+      return await SecureStorageService.readData(CosntString.token);
+    } catch (e, s) {
+      debugPrint("❌ Token fetch failed: $e\n$s");
+      return null;
+    }
   }
 
   @override
@@ -539,60 +598,10 @@ class ImagePickerWidget extends StatelessWidget {
       child: Row(
         children: [
           Obx(() {
-            if (controller.paymentProof.value.isNotEmpty) {
-              return FutureBuilder<String?>(
-                future: _getToken(),
-                builder: (context, tokenSnapshot) {
-                  if (tokenSnapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const SizedBox(
-                      height: 100,
-                      width: 100,
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
+            final proof = controller.paymentProof.value;
 
-                  final token = tokenSnapshot.data;
-                  if (token == null || token.isEmpty) {
-                    return Container(
-                      height: 100,
-                      width: 100,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.lock, size: 50),
-                    );
-                  }
-
-                  return FutureBuilder<Uint8List?>(
-                    future: _fetchProtectedImage(
-                      controller.paymentProof.value,
-                      token,
-                    ),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const SizedBox(
-                          height: 100,
-                          width: 100,
-                          child: Center(child: CircularProgressIndicator()),
-                        );
-                      } else if (snapshot.hasData && snapshot.data != null) {
-                        return Image.memory(
-                          snapshot.data!,
-                          height: 100,
-                          fit: BoxFit.contain,
-                        );
-                      } else {
-                        return Container(
-                          height: 100,
-                          width: 100,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.broken_image, size: 50),
-                        );
-                      }
-                    },
-                  );
-                },
-              );
-            } else {
+            // ✅ No image uploaded → show placeholder
+            if (proof.isEmpty) {
               return Container(
                 height: 100,
                 width: 100,
@@ -600,17 +609,90 @@ class ImagePickerWidget extends StatelessWidget {
                 child: const Icon(Icons.image, size: 50),
               );
             }
+
+            // ✅ Image uploaded → fetch it safely
+            return FutureBuilder<String?>(
+              future: _getToken(),
+              builder: (context, tokenSnapshot) {
+                if (tokenSnapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 100,
+                    width: 100,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (tokenSnapshot.hasError) {
+                  debugPrint("❌ Token error: ${tokenSnapshot.error}");
+                  return Container(
+                    height: 100,
+                    width: 100,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.error, size: 50),
+                  );
+                }
+
+                final token = tokenSnapshot.data ?? '';
+                if (token.isEmpty) {
+                  return Container(
+                    height: 100,
+                    width: 100,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.lock, size: 50),
+                  );
+                }
+
+                return FutureBuilder<Uint8List?>(
+                  future: _fetchProtectedImage(proof, token),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const SizedBox(
+                        height: 100,
+                        width: 100,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    } else if (snapshot.hasError) {
+                      debugPrint("❌ Image fetch error: ${snapshot.error}");
+                      return Container(
+                        height: 100,
+                        width: 100,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.broken_image, size: 50),
+                      );
+                    } else if (snapshot.hasData && snapshot.data != null) {
+                      return Image.memory(
+                        snapshot.data!,
+                        height: 100,
+                        fit: BoxFit.contain,
+                      );
+                    } else {
+                      return Container(
+                        height: 100,
+                        width: 100,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.broken_image, size: 50),
+                      );
+                    }
+                  },
+                );
+              },
+            );
           }),
           const SizedBox(width: 20),
           CommonButton(
             text: "Pick Image",
             onTap: () async {
-              final pickedFile = await ImagePicker().pickImage(
-                source: ImageSource.gallery,
-              );
-              if (pickedFile != null) {
-                File file = File(pickedFile.path);
-                controller.pickAndUpload(file);
+              try {
+                final pickedFile = await ImagePicker().pickImage(
+                  source: ImageSource.gallery,
+                );
+
+                if (pickedFile != null) {
+                  File file = File(pickedFile.path);
+                  await controller.pickAndUpload(file); // ✅ update state safely
+                }
+              } catch (e, s) {
+                debugPrint("❌ Image picking failed: $e\n$s");
               }
             },
           ),
@@ -620,30 +702,11 @@ class ImagePickerWidget extends StatelessWidget {
   }
 }
 
+
 class FullScreenImagePage extends StatelessWidget {
   final String imageUrl;
 
   const FullScreenImagePage({super.key, required this.imageUrl});
-
-  Future<String?> _getToken() async {
-    return await SecureStorageService.readData(CosntString.token);
-  }
-
-  Future<Uint8List?> _fetchProtectedImage(String url, String token) async {
-    try {
-      final response = await Dio().get(
-        url,
-        options: Options(
-          responseType: ResponseType.bytes,
-          headers: {"Authorization": "Bearer $token"},
-        ),
-      );
-      return Uint8List.fromList(response.data);
-    } catch (e) {
-      debugPrint("Image fetch failed: $e");
-      return null;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -652,51 +715,13 @@ class FullScreenImagePage extends StatelessWidget {
         backgroundColor: Colors.black,
         title: const Text("Image Viewer"),
       ),
-      body: FutureBuilder<String?>(
-        future: _getToken(),
-        builder: (context, tokenSnapshot) {
-          if (tokenSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final token = tokenSnapshot.data;
-          if (token == null || token.isEmpty) {
-            return const Center(
-              child: Text(
-                "Token not found",
-                style: TextStyle(color: Colors.white),
-              ),
-            );
-          }
-
-          return FutureBuilder<Uint8List?>(
-            future: _fetchProtectedImage(imageUrl, token),
-            builder: (context, imageSnapshot) {
-              if (imageSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (imageSnapshot.hasData && imageSnapshot.data != null) {
-                return PhotoView(
-                  imageProvider: MemoryImage(imageSnapshot.data!),
-                  minScale: PhotoViewComputedScale.contained,
-                  maxScale: PhotoViewComputedScale.covered * 3.0,
-                  backgroundDecoration: const BoxDecoration(
-                    color: Colors.black,
-                  ),
-                );
-              } else {
-                return const Center(
-                  child: Icon(
-                    Icons.broken_image,
-                    color: Colors.white,
-                    size: 80,
-                  ),
-                );
-              }
-            },
-          );
-        },
+      body: PhotoView(
+        imageProvider: NetworkImage(imageUrl),
+        minScale: PhotoViewComputedScale.contained,
+        maxScale: PhotoViewComputedScale.covered * 3.0,
+        backgroundDecoration: const BoxDecoration(
+          color: Colors.black,
+        ),
       ),
     );
   }

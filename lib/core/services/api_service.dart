@@ -1,3 +1,4 @@
+import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:dio/dio.dart';
 import 'package:RUTSNRIDES/core/constant/const_data.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
@@ -139,6 +140,7 @@ class ApiService {
         options: Options(responseType: responseType),
       );
     } on DioError catch (e) {
+      print(e);
       throw _handleDioError(e);
     }
   }
@@ -190,6 +192,7 @@ class ApiService {
             message = 'Error $statusCode: ${e.response?.statusMessage}';
         }
       }
+      showError(message);
       return Exception(message);
     } else {
       if (e.type == DioErrorType.connectionTimeout ||

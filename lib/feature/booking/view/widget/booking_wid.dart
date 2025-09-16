@@ -1,3 +1,4 @@
+import 'package:RUTSNRIDES/feature/enquiry/model/view/confrim_booking_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
@@ -5,7 +6,7 @@ import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/feature/booking/controller/booking_controller.dart';
 import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
-import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/view/widget/enquity_wid.dart';
 // import your Booking model
 
 class BookingBottomSheet extends StatelessWidget {
@@ -97,9 +98,12 @@ Booking bookingFromLead(Lead lead) {
     id: "",
     timestamp: lead.timestamp, // keep same timestamp
     riderName: lead.fullName,
+    accomdation: lead.accommodation,
     phone: lead.whatsapp,
     programBooked: lead.programInterest,
     programDetails: "",
+    plannedDate: [],
+    medicalCondition: lead.medicalDetails,
     bookingDate: "",
     height: "",
     weight: "",
@@ -115,7 +119,7 @@ Booking bookingFromLead(Lead lead) {
     paymentStatus: "",
     amountPaid: 0.0, // not in Lead → default
     paymentMode: '', // not in Lead
-    paymentProof: '', // not in Lead
+    paymentProof: [], // not in Lead
     riderAge: lead.age,
     parentName: '', // not in Lead
     bookingType: "",
@@ -222,13 +226,13 @@ Widget buildStatsSummary(BookingController controller) {
       print("➡️ Booking ID: ${b.id}, Status: $status (Checking for PAID)");
       return status == 'PAID';
     }).length;
-    print("✅ Paid Count: $paid");
+    
 
     final totalRevenue = bookings.fold(0.0, (sum, b) {
-      print("💰 Adding Revenue: ${b.receivedAmount} from Booking ID: ${b.id}");
-      return sum + b.receivedAmount;
+     
+      return sum + b.amountPaid;
     });
-    print("💰 Total Revenue: $totalRevenue");
+   
 
     final outstanding = bookings.fold(0.0, (sum, b) {
       final due = b.totalFee - b.receivedAmount;
@@ -379,50 +383,53 @@ Widget buildBookingCard(
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      booking.riderName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FullScreenImagePage(
-                              imageUrl:
-                                  "${EndPoints.fetch}/${booking.paymentProof}",
-                            ),
+              Text(
+                booking.riderName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+              Row(
+                children: [
+                  CommonButton(
+                    text: "View Proff",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FullScreenImagePage(
+                            imageUrl:
+                                "${EndPoints.fetch}/${booking.paymentProof.first}",
                           ),
-                        );
-                      },
-                      child: const Text("View Proof"),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Visibility(
-                visible: booking.bookingStatus.isNotEmpty,
-                child: InkWell(
-                  onTap: () {},
-                  child: Chip(
-                    label: Text(
-                      booking.bookingStatus.toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                    backgroundColor: Colors.green.shade400,
+                        ),
+                      );
+                    },
                   ),
-                ),
+                  CommonButton(
+                    text: "Edit Details",
+                    onTap: () async {
+                      print(booking.toJson());
+                      Get.to(ConfirmBookingPage(bookingData: booking));
+                    },
+                  ),
+                ],
               ),
+
+              // Visibility(
+              //   visible: booking.bookingStatus.isNotEmpty,
+              //   child: InkWell(
+              //     onTap: () {},
+              //     child: Chip(
+              //       label: Text(
+              //         booking.bookingStatus.toUpperCase(),
+              //         style: const TextStyle(color: Colors.white, fontSize: 12),
+              //       ),
+              //       backgroundColor: Colors.green.shade400,
+              //     ),
+              //   ),
+              // ),
             ],
           ),
 
@@ -490,45 +497,41 @@ Widget buildBookingCard(
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total: ${controller.currencyFormat.format(booking.totalFee)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Paid: ${controller.currencyFormat.format(booking.amountPaid)}',
-                        style: TextStyle(
-                          color: Colors.green[700],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'Total: ${controller.currencyFormat.format(booking.totalFee)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Received: ${controller.currencyFormat.format(booking.receivedAmount)}',
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Due: ${controller.currencyFormat.format(outstanding)}',
-                        style: TextStyle(
-                          color: outstanding > 0
-                              ? Colors.red[700]
-                              : Colors.green[700],
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'Paid: ${controller.currencyFormat.format(booking.amountPaid)}',
+                    style: TextStyle(
+                      color: Colors.green[700],
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
+
+              // Column(
+              //   crossAxisAlignment: CrossAxisAlignment.end,
+              //   children: [
+              //     Text(
+              //       'Received: ${controller.currencyFormat.format(booking.receivedAmount)}',
+              //       style: TextStyle(
+              //         color: Colors.red[700],
+              //         fontWeight: FontWeight.bold,
+              //       ),
+              //     ),
+              //     Text(
+              //       'Due: ${controller.currencyFormat.format(outstanding)}',
+              //       style: TextStyle(
+              //         color: outstanding > 0
+              //             ? Colors.red[700]
+              //             : Colors.green[700],
+              //         fontWeight: FontWeight.bold,
+              //       ),
+              //     ),
+              //   ],
+              // ),
               const SizedBox(height: 4),
               if (booking.paymentStatus.isNotEmpty)
                 Text(
@@ -706,5 +709,49 @@ void exportData(BookingController controller) {
     snackPosition: SnackPosition.BOTTOM,
     backgroundColor: Colors.green[700],
     colorText: Colors.white,
+  );
+}
+
+Widget _buildTextField(
+  String label,
+  TextEditingController ctrl, {
+  TextInputType keyboard = TextInputType.text,
+  bool isRequired = false,
+  int maxLines = 1,
+}) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: TextFormField(
+      controller: ctrl,
+      keyboardType: keyboard,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: '$label${isRequired ? ' *' : ''}',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+        filled: true,
+        fillColor: Colors.grey[50],
+      ),
+      validator: (value) {
+        if (isRequired && (value == null || value.isEmpty)) {
+          return 'This field is required';
+        }
+
+        // Special validation for age field
+        if (label == "Rider Age" && value != null && value.isNotEmpty) {
+          // Check if it's a valid number
+          if (int.tryParse(value) == null) {
+            return 'Please enter a valid number';
+          }
+
+          // Check age requirement
+          final age = int.parse(value);
+          if (age < 5 || age > 80) {
+            return 'Age must be between 5 and 80';
+          }
+        }
+
+        return null;
+      },
+    ),
   );
 }

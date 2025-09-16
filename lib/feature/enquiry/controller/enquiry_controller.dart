@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:RUTSNRIDES/feature/enquiry/model/program_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -20,13 +21,34 @@ class EnquiryController extends GetxController {
   var leads = <Lead>[].obs;
   var leadsLoading = false.obs;
   var followUpLoading = false.obs;
+  var plannedData = <String>[].obs;
+  DateTime focusedDay = DateTime.now();
+  DateTime? selectedDay;
+  CalendarFormat calendarFormat = CalendarFormat.month;
+
+  var paymentProof = "".obs;
+
+  var receivedAmount = TextEditingController();
+
+  var bookingStatus = "".obs;
+  void addDate(DateTime date) {
+    final formatted = DateFormat("yyyy-MM-dd").format(date);
+    if (!plannedData.contains(formatted)) {
+      plannedData.add(formatted);
+    }
+
+    printData(plannedData.toString());
+  }
+
+  void removeDate(String date) {
+    plannedData.remove(date);
+  }
 
   // Text controllers
   final riderName = TextEditingController();
   final age = TextEditingController();
   final parentName = TextEditingController();
   final phone = TextEditingController();
-  var selectedProgram = "".obs;
   final programDetails = TextEditingController();
   var headSize = TextEditingController();
   var pantSize = TextEditingController();
@@ -38,12 +60,13 @@ class EnquiryController extends GetxController {
   final preferredSessionDate = TextEditingController();
   final totalFee = TextEditingController();
   final amtPaid = TextEditingController();
+  final medicalCondition = TextEditingController();
   final isLoading = false.obs; // reactive variable
   final ImagePicker picker = ImagePicker();
 
   // Dropdown values
   var trainingSlot = ''.obs;
-  var sessionType = ''.obs;
+  var sessionType = 'Private'.obs;
   var paymentStatus = ''.obs;
   var paymentMode = "".obs;
   var selectedBookingType = "".obs;
@@ -51,6 +74,7 @@ class EnquiryController extends GetxController {
   // Checkbox values
   var bikeRental = false.obs;
   var gearRental = false.obs;
+  var accomdation = false.obs;
 
   Future<void> pickAndUpload(File imageFile) async {
     try {
@@ -70,15 +94,64 @@ class EnquiryController extends GetxController {
     }
   }
 
+  void findandSet(String findString) {
+    printData(findString);
+    for (var i in programs) {
+      if (i.title == findString) {
+        selectedProgram.value = i;
+      }
+    }
+  }
+
+  void setBookingData(Booking booking) {
+    findandSet(booking.programBooked);
+
+    printData(booking.plannedDate);
+    riderName.text = booking.riderName;
+    age.text = booking.riderAge.toString();
+    parentName.text = booking.parentName;
+    phone.text = booking.phone;
+
+    programDetails.text = booking.programDetails;
+    headSize.text = booking.headSize;
+    pantSize.text = booking.pantSize;
+    height.text = booking.height;
+    weight.text = booking.weight;
+    shirtSize.text = booking.shirtSize;
+
+    bookingDate.text = booking.bookingDate;
+    preferredSessionDate.text = booking.preferredSessionDate;
+    totalFee.text = booking.totalFee.toString();
+    amtPaid.text = booking.amountPaid.toString();
+    medicalCondition.text = booking.medicalCondition; // or adjust field
+
+    trainingSlot.value = booking.trainingSlot;
+    sessionType.value = booking.sessionType;
+    paymentStatus.value = booking.paymentStatus;
+    paymentMode.value = booking.paymentMode;
+    selectedBookingType.value = booking.bookingType;
+    headSize.text = booking.headSize;
+
+    paymentProof.value = booking.paymentProof.isNotEmpty
+        ? booking.paymentProof.first
+        : "";
+    plannedData.value = booking.plannedDate;
+
+    bikeRental.value = booking.bikeRental.toLowerCase() == 'yes';
+    gearRental.value = booking.gearRental.toLowerCase() == 'yes';
+
+    accomdation.value = booking.accomdation.toLowerCase() == "yes";
+  }
+
   void setEnquiryData(Lead lead) {
     // Text fields
 
-    printData(lead.toJson());
+    findandSet(lead.programInterest);
     riderName.text = lead.fullName;
     age.text = lead.age.toString();
     parentName.text = ""; // Not in Lead
     phone.text = lead.whatsapp;
-    selectedProgram.value = lead.programInterest;
+
     programDetails.text = "";
     preferredSessionDate.text = "";
     totalFee.text = ""; // Not available in Lead
@@ -94,37 +167,126 @@ class EnquiryController extends GetxController {
     // Checkboxes
     bikeRental.value = (lead.bikeRental.toLowerCase() == "yes");
     gearRental.value = (lead.gearRental.toLowerCase() == "yes");
+    accomdation.value = (lead.accommodation.toLowerCase() == 'yes');
+    medicalCondition.text = (lead.medicalDetails);
   }
 
-  // Dropdown options
-  final trainingSlots = [
-    "Morning (9AM–12PM)",
-    "Afternoon (2PM–5PM)",
-    "Full Day",
-  ];
   final paymentMethod = ["UPI", "Bank Transfer", "Card", "Cash"];
   final bookingType = ["Online", "Offline"];
-  final sessionTypes = ["Private", "Group"];
+
   final paymentStatuses = ["Pending", "Partially Paid", "Completed"];
+
+  var selectedProgram = TrainingProgram.nullTrainingProgram.obs;
 
   //radio button data
   final programs = [
-    'Ruts Start - Rs.7000',
-    'Ruts Foundation - Rs.5200',
-    'Ruts Dirt Training - Group: Rs.7200 / Private: Rs.9200',
-    'Ruts Explore (ADV L1) - Group: Rs.6200 / Private: Rs.8200',
-    'Ruts Conquer (ADV L2) - Group: Rs.8200 / Private: Rs.10,500',
-    'Ruts Grit (EnduroX L1) - Group: Rs.3800 / Private: Rs.5500',
-    'Ruts Enduro Mastery (EnduroX L2) - Group: Rs.5800 / Private: Rs.7500',
-    'Ruts Weekend - Rs.14,500',
-    'Rally Raid & Roadbook Theory - Rs.2500',
-    'Young Ruts - Session: Rs.4500 / Monthly: Rs.32,000',
-    'Ruts n Queens - Half: Rs.2500 / Full: Rs.4500 / Weekend: Rs.8999',
-    'Adult One-on-One - One Day: Rs.4999 / Monthly: Rs.30,000',
-    'Custom Training Plan',
-    'open session - Rs.1600/day',
-    "Dirt Bike Training - Beginner Level",
-  ];
+    TrainingProgram(
+      id: 1,
+      name: "Ruts Start",
+      durations: ["half day"],
+      sessionTypes: ["Private"],
+      title: "Ruts Start - Rs.7000",
+    ),
+    TrainingProgram(
+      id: 2,
+      name: "Ruts Foundation",
+      durations: ["half day"],
+      sessionTypes: ["Private"],
+      title: "Ruts Foundation - Rs.5200",
+    ),
+    TrainingProgram(
+      id: 3,
+      name: "Ruts Dirt Training",
+      durations: ["full day"],
+      sessionTypes: ["Group", "Private"],
+      title: "Ruts Dirt Training - Group: Rs.7200 / Private: Rs.9200",
+    ),
+    TrainingProgram(
+      id: 4,
+      name: "Ruts Explore (ADV L1)",
+      durations: ["full day"],
+      sessionTypes: ["Group", "Private"],
+      title: "Ruts Explore (ADV L1) - Group: Rs.6200 / Private: Rs.8200",
+    ),
+    TrainingProgram(
+      id: 5,
+      name: "Ruts Conquer (ADV L2)",
+      durations: ["full day"],
+      sessionTypes: ["Group", "Private"],
+      title: "Ruts Conquer (ADV L2) - Group: Rs.8200 / Private: Rs.10,500",
+    ),
+    TrainingProgram(
+      id: 6,
+      name: "Ruts Grit (EnduroX L1)",
+      durations: ["full day"],
+      sessionTypes: ["Group", "Private"],
+      title: "Ruts Grit (EnduroX L1) - Group: Rs.3800 / Private: Rs.5500",
+    ),
+    TrainingProgram(
+      id: 7,
+      name: "Ruts Enduro Mastery (EnduroX L2)",
+      durations: ["full day"],
+      sessionTypes: ["Group", "Private"],
+      title:
+          "Ruts Enduro Mastery (EnduroX L2) - Group: Rs.5800 / Private: Rs.7500",
+    ),
+    TrainingProgram(
+      id: 8,
+      name: "Ruts Weekend",
+      durations: ["2 days in weekends"],
+      sessionTypes: ["Private"],
+      title: "Ruts Weekend - Rs.14,500",
+    ),
+    TrainingProgram(
+      id: 9,
+      name: "Rally Raid & Roadbook Theory",
+      durations: ["half day"],
+      sessionTypes: ["Private"],
+      title: "Rally Raid & Roadbook Theory - Rs.2500",
+    ),
+    TrainingProgram(
+      id: 10,
+      name: "Young Ruts",
+      durations: ["half day", "full day", "monthly"],
+      sessionTypes: ["Private"],
+      title: "Young Ruts - Session: Rs.4500 / Monthly: Rs.32,000",
+    ),
+    TrainingProgram(
+      id: 11,
+      name: "Ruts n Queens",
+      durations: ["half day", "full day", "weekend"],
+      sessionTypes: ["Private"],
+      title: "Ruts n Queens - Half: Rs.2500 / Full: Rs.4500 / Weekend: Rs.8999",
+    ),
+    TrainingProgram(
+      id: 12,
+      name: "Adult One-on-One",
+      durations: ["custom (single day)", "monthly"],
+      sessionTypes: ["Private"],
+      title: "Adult One-on-One - One Day: Rs.4999 / Monthly: Rs.30,000",
+    ),
+    TrainingProgram(
+      id: 13,
+      name: "Custom Training Plan",
+      durations: ["custom"],
+      sessionTypes: ["Private"],
+      title: "Custom Training Plan",
+    ),
+    TrainingProgram(
+      id: 14,
+      name: "Open Training - Track Access Only",
+      durations: ["full day"],
+      sessionTypes: ["Private"],
+      title: "Open Session - Rs.1600/day",
+    ),
+    TrainingProgram(
+      id: 15,
+      name: "Dirt Bike Training - Beginner Level",
+      durations: ["full day"],
+      sessionTypes: ["Private"],
+      title: "Dirt Bike Training - Beginner Level",
+    ),
+  ].obs;
 
   // Date pickers
 
@@ -183,6 +345,7 @@ class EnquiryController extends GetxController {
   Future<void> submitBookingAndAttendance(
     Booking bookingData,
     Attendance attendance,
+    String enquiryId,
   ) async {
     try {
       loadSubmit.value = true;
@@ -214,9 +377,15 @@ class EnquiryController extends GetxController {
         "headSize": bookingData.headSize,
         "pantSize": bookingData.pantSize,
         "shirtSize": bookingData.shirtSize,
+        "enquiryId": enquiryId,
+        "plannedDate": bookingData.plannedDate,
+        "medicalCondition": medicalCondition.text,
+        "accomdation": accomdation.value == true ? "Yes" : "No",
+        "bookingId": bookingData.id,
       };
 
-      // First call booking API
+      printData(bookingJson);
+
       var bookingRes = await api.post(
         EndPoints.createBooking,
         data: bookingJson,
@@ -226,19 +395,21 @@ class EnquiryController extends GetxController {
         printData("✅ Booking created: ${bookingRes.data}");
 
         // After booking, create attendance
-        await createAttendance(attendance);
+        await createAttendance(attendance, bookingRes.data['bookingId']);
 
-        showSuccess("Booking & Attendance created successfully!");
+        showSuccess(bookingRes.data['message']);
         Get.back();
       } else {
-        showError("Booking failed: ${bookingRes.data['message']}");
+        showError(bookingRes.data['message']);
       }
     } catch (e) {
       showError("❌ Failed to submit: ${e.toString()}");
-    } finally {}
+    } finally {
+      loadSubmit.value = false;
+    }
   }
 
-  Future<void> createAttendance(Attendance attendance) async {
+  Future<void> createAttendance(Attendance attendance, String bookingId) async {
     try {
       var attendanceJson = {
         "riderName": attendance.riderName,
@@ -254,6 +425,7 @@ class EnquiryController extends GetxController {
         "fullDaysDone": attendance.fullDaysDone ?? 0,
         "halfDaysDone": attendance.halfDaysDone ?? 0,
         "sessionsRemaining": attendance.sessionsRemaining ?? 0,
+        "bookingId": bookingId,
         // "//trainingStarted": attendance.//trainingStarted ?? false,
       };
 
@@ -276,19 +448,9 @@ class EnquiryController extends GetxController {
     }
   }
 
-  void setSelectedProgram(String value) {
+  void setSelectedProgram(TrainingProgram value) {
     selectedProgram.value = value;
   }
-
-  DateTime focusedDay = DateTime.now();
-  DateTime? selectedDay;
-  CalendarFormat calendarFormat = CalendarFormat.month;
-
-  var paymentProof = "".obs;
-
-  var receivedAmount = TextEditingController();
-
-  var bookingStatus = "".obs;
 
   /// Load leads from Google Sheets
   Future<void> loadEnquirey() async {
@@ -374,6 +536,7 @@ class EnquiryController extends GetxController {
     // Clear text fields
     riderName.clear();
     age.clear();
+    plannedData.clear();
     parentName.clear();
     phone.clear();
     programDetails.clear();
@@ -383,7 +546,8 @@ class EnquiryController extends GetxController {
     amtPaid.clear();
 
     // Reset dropdown values
-    selectedProgram.value = "";
+    selectedProgram.value = TrainingProgram.nullTrainingProgram;
+    paymentProof.value = "";
     trainingSlot.value = "";
     sessionType.value = "";
     paymentStatus.value = "";
@@ -394,6 +558,7 @@ class EnquiryController extends GetxController {
     bikeRental.value = false;
     gearRental.value = false;
     receivedAmount.clear();
+    paymentProof.close();
     // Reset loading
     isLoading.value = false;
     pantSize.clear();
@@ -420,7 +585,7 @@ class EnquiryController extends GetxController {
     amtPaid.dispose();
 
     // Clear all Rx variables
-    selectedProgram.value = '';
+    selectedProgram.value = TrainingProgram.nullTrainingProgram;
     trainingSlot.value = '';
     sessionType.value = '';
     paymentStatus.value = '';
@@ -429,7 +594,9 @@ class EnquiryController extends GetxController {
     bikeRental.value = false;
     gearRental.value = false;
     isLoading.value = false;
+    paymentProof.value = "";
 
+    plannedData.clear();
     super.onClose();
   }
 

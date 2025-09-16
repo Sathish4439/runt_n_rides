@@ -1,41 +1,53 @@
 import 'dart:ffi' hide Size;
 
 import 'package:RUTSNRIDES/core/utils/utils.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/program_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
 import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
-import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/view/widget/enquity_wid.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 
 class ConfirmBookingPage extends StatefulWidget {
-  final Lead enquirydata;
+  final Lead? enquirydata;
+  final Booking? bookingData;
 
-  const ConfirmBookingPage({super.key, required this.enquirydata});
+  const ConfirmBookingPage({super.key, this.enquirydata, this.bookingData});
   @override
   State<ConfirmBookingPage> createState() => _ConfirmBookingPageState();
 }
 
 class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
-  final EnquiryController controller = Get.find<EnquiryController>();
+  final EnquiryController controller = Get.put(EnquiryController());
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
-    // TODO: implement initState
+    super.initState(); // ✅ always call super first
 
-    controller.setEnquiryData(widget.enquirydata);
-    super.initState();
+    try {
+      // reset submit state
+      controller.loadSubmit(false);
+
+      // handle enquiry or booking data
+      if (widget.enquirydata != null) {
+        controller.setEnquiryData(widget.enquirydata!);
+      } else if (widget.bookingData != null) {
+        controller.setBookingData(widget.bookingData!);
+      }
+    } catch (e, s) {
+      debugPrint("❌ initState error: $e\n$s");
+    }
   }
 
   bool validateData() {
     final age = int.tryParse(controller.age.text.trim()) ?? 0;
     final totalFee = int.tryParse(controller.totalFee.text.trim()) ?? 0;
     final amtPaid = int.tryParse(controller.amtPaid.text.trim()) ?? 0;
-    final receivedAmount =
-        int.tryParse(controller.receivedAmount.text.trim()) ?? 0;
 
+    printData("$age $totalFee $amtPaid");
     // Common fee validations
     if (totalFee == 0) {
       showError("Total fee is required");
@@ -44,11 +56,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
 
     if (amtPaid == 0) {
       showError("Amount paid is required");
-      return false;
-    }
-
-    if (receivedAmount == 0) {
-      showError("Received amount is required");
       return false;
     }
 
@@ -115,12 +122,11 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
 
               // Program Selection Section
               _buildSectionHeader("Program Details"),
+
               _buildProgramSelection(),
-              _buildTextField(
-                "Program Details",
-                controller.programDetails,
-                maxLines: 3,
-              ),
+              _buildTextField("Program Details", controller.programDetails),
+              _buildSectionHeader("Medical Condition"),
+              _buildTextField("", controller.medicalCondition),
 
               SizedBox(height: 24),
 
@@ -132,15 +138,21 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 controller.preferredSessionDate,
                 context,
               ),
-              _buildDropdown(
-                "Training Slot",
-                controller.trainingSlots,
-                controller.trainingSlot,
-              ),
-              _buildDropdown(
-                "Session Type",
-                controller.sessionTypes,
-                controller.sessionType,
+              Obx(() {
+                final program = controller.selectedProgram.value;
+                return _buildDropdown(
+                  "Training Slot",
+                  program.durations ?? [],
+                  controller.trainingSlot,
+                );
+              }),
+
+              Obx(
+                () => _buildDropdown(
+                  "Session Type",
+                  controller.selectedProgram.value.sessionTypes,
+                  controller.sessionType,
+                ),
               ),
 
               SizedBox(height: 24),
@@ -148,7 +160,9 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
               // Rental Options Section
               _buildSectionHeader("Rental Options"),
               _buildRentalOptions(),
+              SizedBox(height: 24),
 
+              // Rental Options Section
               SizedBox(height: 24),
 
               // Payment Section
@@ -160,17 +174,17 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 isRequired: true,
               ),
               _buildTextField(
-                "Paid Amount (₹)",
+                "Advance Paid Amount (₹)",
                 controller.amtPaid,
                 keyboard: TextInputType.number,
                 isRequired: true,
               ),
-              _buildTextField(
-                "Received Amount  (₹)",
-                controller.receivedAmount,
-                keyboard: TextInputType.number,
-                isRequired: true,
-              ),
+              // _buildTextField(
+              //   "Received Amount  (₹)",
+              //   controller.receivedAmount,
+              //   keyboard: TextInputType.number,
+              //   isRequired: true,
+              // ),
               _buildDropdown(
                 "Payment Status",
                 controller.paymentStatuses,
@@ -188,9 +202,13 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
               ),
 
               ImagePickerWidget(),
-
               SizedBox(height: 20),
+
+              _buildSectionHeader("Planned Dates"),
+
+              MultiDatePickerWidget(),
               _buildSectionHeader("Customer details"),
+              SizedBox(height: 20),
               _buildTextField(
                 "Height",
                 controller.height,
@@ -248,18 +266,27 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         ? null // Disable button when loading
                         : () async {
                             if (validateData()) {
-                              if (_formKey.currentState!.validate()) {
+                              if ((_formKey.currentState != null &&
+                                  _formKey.currentState!.validate())) {
                                 // Create booking data and submit
+                                printData(controller.plannedData);
                                 final booking = Booking(
                                   id: "",
-                                  paymentProof: controller.paymentProof.value,
+                                  accomdation:
+                                      controller.accomdation.value == true
+                                      ? "yes"
+                                      : "no",
+                                  plannedDate: controller.plannedData,
+                                  paymentProof: [controller.paymentProof.value],
                                   timestamp: DateTime.now()
                                       .millisecondsSinceEpoch
                                       .toString(),
                                   riderName: controller.riderName.text,
+                                  medicalCondition:
+                                      controller.medicalCondition.text,
                                   phone: controller.phone.text,
                                   programBooked:
-                                      controller.selectedProgram.value,
+                                      controller.selectedProgram.value.title!,
                                   programDetails:
                                       controller.programDetails.text,
                                   bookingDate: controller.bookingDate.text,
@@ -295,23 +322,21 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                   parentName: controller.parentName.text,
                                   bookingType:
                                       controller.selectedBookingType.value,
-                                  receivedAmount:
-                                      double.tryParse(
-                                        controller.receivedAmount.text,
-                                      ) ??
-                                      0.0,
+                                  receivedAmount: 0,
                                   bookingStatus: controller.bookingStatus.value,
                                 );
 
                                 final attendance = Attendance(
                                   id: "",
                                   //trainingStarted: false,
+                                  bookingId: booking.id.toString(),
                                   createdAt: "",
+                                  completedDates: [],
                                   updatedAt: "",
                                   riderName: controller.riderName.text,
                                   phoneNumber: controller.phone.text,
                                   programBooked:
-                                      controller.selectedProgram.value,
+                                      controller.selectedProgram.value.name,
                                   sessionDate: '',
                                   sessionNumber: 0,
                                   totalSessions: 0,
@@ -324,10 +349,16 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                   sessionsRemaining: 0,
                                 );
 
-                                await controller.submitBookingAndAttendance(
-                                  booking,
-                                  attendance,
-                                );
+                                printData(controller.plannedData.toString());
+                                if (widget.enquirydata != null) {
+                                  await controller.submitBookingAndAttendance(
+                                    booking,
+                                    attendance,
+                                    widget.enquirydata!.id,
+                                  );
+                                } else {
+                                  print("test");
+                                }
                               }
                             }
                           },
@@ -486,13 +517,15 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             child: Column(
               children: controller.programs
                   .map(
-                    (program) => RadioListTile<String>(
-                      title: Text(program),
+                    (program) => RadioListTile<TrainingProgram>(
+                      title: Text(program.title ?? ""),
                       value: program,
                       groupValue: controller.selectedProgram.value,
                       onChanged: (val) {
                         if (val != null) {
                           controller.setSelectedProgram(val);
+
+                          printData(val.toJson());
                         }
                       },
                       contentPadding: EdgeInsets.symmetric(horizontal: 16),
@@ -502,6 +535,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             ),
           ),
         ),
+
         SizedBox(height: 8),
       ],
     );
@@ -546,17 +580,15 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             filled: true,
             fillColor: Colors.grey[50],
           ),
-          value: selected.value.isEmpty ? null : selected.value,
+          // ✅ Only set value if it's in the items list
+          value: items.contains(selected.value) && selected.value.isNotEmpty
+              ? selected.value
+              : null,
           items: items
+              .toSet() // ✅ Remove duplicates, just in case
               .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),
           onChanged: (val) => selected.value = val ?? '',
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select an option';
-            }
-            return null;
-          },
         ),
       ),
     );
@@ -584,6 +616,12 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                   title: Text("Gear Rental"),
                   value: controller.gearRental.value,
                   onChanged: (val) => controller.gearRental.value = val!,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                ),
+                CheckboxListTile(
+                  title: Text("Accomdation"),
+                  value: controller.accomdation.value,
+                  onChanged: (val) => controller.accomdation.value = val!,
                   contentPadding: EdgeInsets.symmetric(horizontal: 16),
                 ),
               ],

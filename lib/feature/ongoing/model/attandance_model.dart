@@ -1,23 +1,29 @@
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
+
 class Attendance {
   final String? id; // MongoDB document _id
-  final String riderName; // Rider's full name
-  final String phoneNumber; // Rider phone number
-  final String programBooked; // Program name
-  final String sessionDate; // Date of this session (ISO String)
-  final int sessionNumber; // Session number (1,2,3...)
-  final int totalSessions; // Total sessions assigned
-  final String attendanceStatus; // Present / Absent / Late / Cancelled
-  final String sessionDuration; // Full Day / Half Day
-  final String sessionCompletion; // Completed / Partial / Not Started
-  final int sessionsCompleted; // Count of sessions completed so far
-  final int fullDaysDone; // Count of full days done
-  final int halfDaysDone; // Count of half days done
-  final int sessionsRemaining; // Total remaining sessions
-  final String? createdAt; // Auto timestamp from Mongo
-  final String? updatedAt; // Auto timestamp from Mongo
+  final String bookingId; // only the ID string
+  final String riderName;
+  final String phoneNumber;
+  final String programBooked;
+  final String sessionDate;
+  final int sessionNumber;
+  final int totalSessions;
+  final String attendanceStatus;
+  final String sessionDuration;
+  final String sessionCompletion;
+  final int sessionsCompleted;
+  final int fullDaysDone;
+  final int halfDaysDone;
+  final int sessionsRemaining;
+  final String? createdAt;
+  final String? updatedAt;
+  final Booking? bookingData;
+  final List<String> completedDates; // full booking object
 
   Attendance({
     this.id,
+    required this.bookingId,
     required this.riderName,
     required this.phoneNumber,
     required this.programBooked,
@@ -33,14 +39,26 @@ class Attendance {
     required this.sessionsRemaining,
     this.createdAt,
     this.updatedAt,
+    this.bookingData,
+    required this.completedDates,
   });
 
-  /// Convert JSON (from Mongo API) to Attendance object
+  /// Convert JSON (from API) to Attendance object
   factory Attendance.fromJson(Map<String, dynamic> json) {
+    final bookingJson = json["bookingId"];
+
     return Attendance(
       id: json["_id"] ?? "",
+      bookingId: bookingJson is Map<String, dynamic>
+          ? bookingJson["_id"] ??
+                "" // if object, take _id
+          : bookingJson?.toString() ?? "", // if just ID
       riderName: json["riderName"] ?? "",
       phoneNumber: json["phoneNumber"] ?? "",
+      completedDates: (json['completedDates'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       programBooked: json["programBooked"] ?? "",
       sessionDate: json["sessionDate"] ?? "",
       sessionNumber: json["sessionNumber"] ?? 0,
@@ -54,10 +72,13 @@ class Attendance {
       sessionsRemaining: json["sessionsRemaining"] ?? 0,
       createdAt: json["createdAt"] ?? "",
       updatedAt: json["updatedAt"] ?? "",
+      bookingData: bookingJson is Map<String, dynamic>
+          ? Booking.fromJson(bookingJson)
+          : null,
     );
   }
 
-  /// Convert Attendance object to JSON (for POST/PUT requests)
+  /// Convert Attendance object to JSON
   Map<String, dynamic> toJson() {
     return {
       "riderName": riderName,
@@ -73,13 +94,17 @@ class Attendance {
       "fullDaysDone": fullDaysDone,
       "halfDaysDone": halfDaysDone,
       "sessionsRemaining": sessionsRemaining,
+      "bookingId": bookingId,
+      "completedDates": completedDates,
     };
   }
 
   static final defaultData = Attendance(
+    bookingId: "",
     riderName: "",
     phoneNumber: "",
     programBooked: "",
+    completedDates: [],
     sessionDate: "",
     sessionNumber: 0,
     totalSessions: 0,

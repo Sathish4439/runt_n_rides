@@ -42,6 +42,8 @@ class AuthController extends GetxController {
 
       var res = await api.post(EndPoints.login, data: bodyJson);
 
+     
+
       if (res.data['success']) {
         final user = res.data['user'];
 
@@ -58,6 +60,10 @@ class AuthController extends GetxController {
           CosntString.token,
           res.data['accessToken'],
         );
+
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
       }
     } catch (e) {
       printData(e);

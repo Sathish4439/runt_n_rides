@@ -17,7 +17,11 @@ class _LapsScreenState extends State<LapsScreen> {
 
   @override
   void initState() {
+    controller.lapsHistory.clear();
+    controller.laps.clear();
+    controller.elapsedTime.value = Duration.zero;
     controller.fetchLapHistory(widget.attendance.id ?? "");
+
     super.initState();
   }
 
@@ -238,9 +242,13 @@ class _LapsScreenState extends State<LapsScreen> {
       builder: (_) {
         return Obx(() {
           if (controller.lapsHistory.isEmpty) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.all(20.0),
-              child: Text("No laps found"),
+              child: SizedBox(
+                width: double.infinity,
+                height: 40,
+                child: Center(child: Text("No laps found")),
+              ),
             );
           }
 
@@ -259,6 +267,20 @@ class _LapsScreenState extends State<LapsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              textAlign: TextAlign.end,
+                              "Total Rides : ${controller.lapsHistory.length}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
                         Text(
                           "Ride ${ride.rideNumber} • ${ride.createdAt.toLocal().toString().split('.')[0]}",
                           style: const TextStyle(

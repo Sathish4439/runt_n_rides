@@ -1,5 +1,6 @@
 // attendance_controller.dart
 import 'dart:async';
+import 'dart:io';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/core/constant/const_data.dart';
 import 'package:RUTSNRIDES/core/services/api_service.dart';
@@ -8,6 +9,7 @@ import 'package:RUTSNRIDES/core/theme/app_theme.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/lap_model.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class AttendanceController extends GetxController {
   // Observables
@@ -18,6 +20,15 @@ class AttendanceController extends GetxController {
   var searchQuery = ''.obs;
   var stats = <String, dynamic>{}.obs;
   var showSaveOption = false.obs;
+  Rx<DateTime> focusedDay = DateTime.now().obs;
+  Rx<DateTime?> selectedDay = Rx<DateTime?>(null);
+
+  // Optional: List of attended dates (can be fullDays/halfDays)
+
+  var selectedDays = <DateTime>[].obs;
+
+  var lapsHistory = <Lap>[].obs;
+  var loadLapsHistory = false.obs;
 
   final api = ApiService();
 
@@ -209,10 +220,26 @@ class AttendanceController extends GetxController {
   /// Update attendance
   Future<void> updateAddress(Attendance updatedAttendance) async {
     try {
+      var bodyJson = {
+        "attendanceStatus": updatedAttendance.attendanceStatus,
+        "sessionDuration": updatedAttendance.sessionDuration,
+        "sessionCompletion": updatedAttendance.sessionCompletion,
+        "sessionDate": updatedAttendance.sessionDate,
+        "totalSessions":updatedAttendance.totalSessions
+      };
+
+      printData(bodyJson);
+
       final res = await api.put(
         "${EndPoints.attendance}/${updatedAttendance.id}",
-        data: updatedAttendance.toJson(),
+        data: bodyJson,
       );
+
+      if (res.data['success']) {
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
+      }
       printData(res);
     } catch (e) {
       printData(e);
@@ -238,13 +265,11 @@ class AttendanceController extends GetxController {
     }
   }
 
-  var lapsHistory = <Lap>[].obs;
-  var loadLapsHistory = false.obs;
-
   /// Fetch lap history for a specific session
   Future<void> fetchLapHistory(String id) async {
     try {
       loadLapsHistory.value = true;
+      lapsHistory.clear();
 
       var res = await api.get("${EndPoints.lapsRoute}/$id/${EndPoints.laps}");
 
@@ -263,6 +288,44 @@ class AttendanceController extends GetxController {
       loadLapsHistory.value = false;
     }
   }
+
+ Future<void> pickAndUploadPaymentProof(File imageFile, String bookingId) async {
+  try {
+    // 1️⃣ Upload file first
+    final uploadResponse = await api.postFile(
+      EndPoints.upload,
+      fileKey: "paymentProof",
+      filePath: imageFile.path,
+    );
+
+    if (uploadResponse.statusCode != 200 || uploadResponse.data['filename'] == null) {
+      Get.snackbar("Error", "File upload failed");
+      return;
+    }
+
+    final uploadedFileName = uploadResponse.data['filename'];
+
+    // 2️⃣ Append new payment proof to existing ones
+    final updateResponse = await api.put(
+      "${EndPoints.booking}/$bookingId/${EndPoints.paymentProff}",
+      data: {
+        "paymentProof": [uploadedFileName], // backend will append it
+      },
+    );
+
+    if (updateResponse.statusCode == 200) {
+      Get.snackbar("Success", "Payment proof updated successfully");
+    } else {
+      Get.snackbar(
+        "Error",
+        updateResponse.data['message'] ?? "Failed to update payment proof",
+      );
+    }
+  } catch (e) {
+    Get.snackbar("Error", e.toString());
+  }
+}
+
 
   /// Set laps history and sort by createdAt descending
   void setLapsHistory(List<Lap> data) {

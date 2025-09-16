@@ -1,7 +1,7 @@
 class EndPoints {
- // static final baseUrl = "https://api.rutsnrides.com/api/";
+  // static final baseUrl = "https://api.rutsnrides.com/api/";
   static final baseUrl = "https://images-upload.rutsnrides.com/api/";
-  //static final baseUrl = "http://192.168.31.86:8080/api/";
+ // static final baseUrl = "https://c886513a60aa.ngrok-free.app/api/";
 
   //auth
   static final auth = "auth";
@@ -16,6 +16,8 @@ class EndPoints {
   static final booking = "form_booking";
   static final getAllBooking = "$booking/";
   static final createBooking = "$booking/";
+  static final planned_date = "planned-date";
+  static final paymentProff = "payment_proof";
 
   //attendance
   static final attendance = "form_attendance";

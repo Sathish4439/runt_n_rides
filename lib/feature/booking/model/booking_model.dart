@@ -20,17 +20,21 @@ class Booking {
   final String paymentStatus;
   final double amountPaid;
   final String paymentMode;
-  final String paymentProof;
+  final List<String> paymentProof;
   final int riderAge;
   final String parentName;
   final String bookingType;
   final double receivedAmount;
   final String bookingStatus;
+  final List<String> plannedDate;
+  final String medicalCondition;
+  final String accomdation;
 
   Booking({
     this.id,
     required this.timestamp,
     required this.riderName,
+    required this.medicalCondition,
     required this.phone,
     required this.programBooked,
     required this.programDetails,
@@ -43,6 +47,7 @@ class Booking {
     required this.pantSize,
     required this.headSize,
     required this.sessionType,
+    required this.accomdation,
     required this.bikeRental,
     required this.gearRental,
     required this.totalFee,
@@ -54,19 +59,26 @@ class Booking {
     required this.parentName,
     required this.bookingType,
     required this.receivedAmount,
+    required this.plannedDate,
     required this.bookingStatus,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
     return Booking(
       id: json["_id"]?.toString(),
-      timestamp: json["timestamp"] ?? "",
+      timestamp: json["timestamp"]?.toString() ?? "",
       riderName: json["fullNameOfRider"] ?? "",
+      medicalCondition: json['medicalCondition'] ?? "",
       phone: json["phoneNumber"] ?? "",
       programBooked: json["programBooked"] ?? "",
       programDetails: json["programDetails"] ?? "",
-      bookingDate: json["bookingDate"] ?? "",
-      preferredSessionDate: json["sessionDate"] ?? "",
+      accomdation: json['accomdation'] ?? "",
+      bookingDate: json["bookingDate"] != null
+          ? DateTime.parse(json["bookingDate"]).toIso8601String().split("T")[0]
+          : "",
+      preferredSessionDate: json["sessionDate"] != null
+          ? DateTime.parse(json["sessionDate"]).toIso8601String().split("T")[0]
+          : "",
       trainingSlot: json["trainingSlot"] ?? "",
       height: json["height"] ?? "",
       weight: json["weight"] ?? "",
@@ -80,12 +92,17 @@ class Booking {
       paymentStatus: json["paymentStatus"] ?? "",
       amountPaid: (json["amountPaid"] ?? 0).toDouble(),
       paymentMode: json["paymentMode"] ?? "",
-      paymentProof: json["paymentProof"] ?? "",
+      paymentProof: (json["paymentProof"] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
       riderAge: json["ageOfRider"] ?? 0,
       parentName: json["parentName"] ?? "",
-      bookingType: json["bookingType"] ?? "",
+      bookingType: json["bookingType"] ?? "Online",
       receivedAmount: (json["receivedAmount"] ?? 0).toDouble(),
       bookingStatus: json["bookingStatus"] ?? "",
+      plannedDate: (json["plannedDate"] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 
@@ -108,6 +125,7 @@ class Booking {
       "bikeRental": bikeRental,
       "gearRental": gearRental,
       "totalProgramFee": totalFee,
+      "accomdation": accomdation,
       "paymentStatus": paymentStatus,
       "amountPaid": amountPaid,
       "paymentMode": paymentMode,
@@ -117,6 +135,39 @@ class Booking {
       "bookingType": bookingType,
       "receivedAmount": receivedAmount,
       "bookingStatus": bookingStatus,
+      "plannedDate": plannedDate,
     };
   }
+
+  static final nullBookingdata = Booking(
+    timestamp: "",
+    riderName: "",
+    medicalCondition: "",
+    phone: "",
+    programBooked: "",
+    programDetails: "",
+    bookingDate: "",
+    preferredSessionDate: "",
+    trainingSlot: "",
+    height: "",
+    weight: "",
+    shirtSize: "",
+    pantSize: "",
+    headSize: "",
+    sessionType: "",
+    accomdation: "",
+    bikeRental: "",
+    gearRental: "",
+    totalFee: 0,
+    paymentStatus: "",
+    amountPaid: 0,
+    paymentMode: "",
+    paymentProof:[],
+    riderAge: 0,
+    parentName: "",
+    bookingType: "",
+    receivedAmount: 0,
+    plannedDate: [],
+    bookingStatus: "",
+  );
 }
