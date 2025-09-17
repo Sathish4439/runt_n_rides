@@ -28,27 +28,32 @@ class CommonButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: isLoading ? null : onTap, // disable when loading
-      child: Container(
-        padding: padding,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(color: Colors.white),
-        ),
-        alignment: Alignment.center,
-        child: isLoading
-            ? SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  color: textColor,
-                  strokeWidth: 2,
+      child: Center(
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(color: Colors.white),
+          ),
+          alignment: Alignment.center,
+          child: isLoading
+              ? SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: textColor,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  text,
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              )
-            : Text(
-                text,
-                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-              ),
+        ),
       ),
     );
   }

@@ -19,7 +19,9 @@ class Attendance {
   final String? createdAt;
   final String? updatedAt;
   final Booking? bookingData;
-  final List<String> completedDates; // full booking object
+
+  /// ✅ Change from List<String> → List<CompletedDate>
+  final List<CompletedDate> completedDates;
 
   Attendance({
     this.id,
@@ -43,22 +45,16 @@ class Attendance {
     required this.completedDates,
   });
 
-  /// Convert JSON (from API) to Attendance object
   factory Attendance.fromJson(Map<String, dynamic> json) {
     final bookingJson = json["bookingId"];
 
     return Attendance(
-      id: json["_id"] ?? "",
+      id: json["_id"]?.toString(),
       bookingId: bookingJson is Map<String, dynamic>
-          ? bookingJson["_id"] ??
-                "" // if object, take _id
-          : bookingJson?.toString() ?? "", // if just ID
+          ? bookingJson["_id"] ?? ""
+          : bookingJson?.toString() ?? "",
       riderName: json["riderName"] ?? "",
       phoneNumber: json["phoneNumber"] ?? "",
-      completedDates: (json['completedDates'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          [],
       programBooked: json["programBooked"] ?? "",
       sessionDate: json["sessionDate"] ?? "",
       sessionNumber: json["sessionNumber"] ?? 0,
@@ -75,12 +71,16 @@ class Attendance {
       bookingData: bookingJson is Map<String, dynamic>
           ? Booking.fromJson(bookingJson)
           : null,
+      completedDates: (json['completedDates'] as List<dynamic>? ?? [])
+          .map((e) => CompletedDate.fromJson(e))
+          .toList(),
     );
   }
 
-  /// Convert Attendance object to JSON
   Map<String, dynamic> toJson() {
     return {
+      "_id": id,
+      "bookingId": bookingId,
       "riderName": riderName,
       "phoneNumber": phoneNumber,
       "programBooked": programBooked,
@@ -94,8 +94,10 @@ class Attendance {
       "fullDaysDone": fullDaysDone,
       "halfDaysDone": halfDaysDone,
       "sessionsRemaining": sessionsRemaining,
-      "bookingId": bookingId,
-      "completedDates": completedDates,
+      "createdAt": createdAt,
+      "updatedAt": updatedAt,
+      "bookingData": bookingData?.toJson(),
+      "completedDates": completedDates.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -116,4 +118,28 @@ class Attendance {
     halfDaysDone: 0,
     sessionsRemaining: 0,
   );
+}
+
+class CompletedDate {
+  final String date;
+  final String duration;
+
+  CompletedDate({
+    required this.date,
+    required this.duration,
+  });
+
+  factory CompletedDate.fromJson(Map<String, dynamic> json) {
+    return CompletedDate(
+      date: json["date"] ?? "",
+      duration: json["duration"] ?? "",
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "date": date,
+      "duration": duration,
+    };
+  }
 }

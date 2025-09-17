@@ -21,7 +21,7 @@ class EnquiryController extends GetxController {
   var leads = <Lead>[].obs;
   var leadsLoading = false.obs;
   var followUpLoading = false.obs;
-  var plannedData = <String>[].obs;
+  var plannedData = <CompletedDate>[].obs;
   DateTime focusedDay = DateTime.now();
   DateTime? selectedDay;
   CalendarFormat calendarFormat = CalendarFormat.month;
@@ -34,7 +34,8 @@ class EnquiryController extends GetxController {
   void addDate(DateTime date) {
     final formatted = DateFormat("yyyy-MM-dd").format(date);
     if (!plannedData.contains(formatted)) {
-      plannedData.add(formatted);
+      var date = CompletedDate(date: formatted, duration: trainingSlot.value);
+      plannedData.add(date);
     }
 
     printData(plannedData.toString());
@@ -105,6 +106,8 @@ class EnquiryController extends GetxController {
 
   void setBookingData(Booking booking) {
     findandSet(booking.programBooked);
+
+    printData(booking.toJson());
 
     printData(booking.plannedDate);
     riderName.text = booking.riderName;
@@ -183,49 +186,49 @@ class EnquiryController extends GetxController {
     TrainingProgram(
       id: 1,
       name: "Ruts Start",
-      durations: ["half day"],
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)", "Full Day"],
       sessionTypes: ["Private"],
       title: "Ruts Start - Rs.7000",
     ),
     TrainingProgram(
       id: 2,
       name: "Ruts Foundation",
-      durations: ["half day"],
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)", "Full Day"],
       sessionTypes: ["Private"],
       title: "Ruts Foundation - Rs.5200",
     ),
     TrainingProgram(
       id: 3,
       name: "Ruts Dirt Training",
-      durations: ["full day"],
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)", "Full Day"],
       sessionTypes: ["Group", "Private"],
       title: "Ruts Dirt Training - Group: Rs.7200 / Private: Rs.9200",
     ),
     TrainingProgram(
       id: 4,
       name: "Ruts Explore (ADV L1)",
-      durations: ["full day"],
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)", "Full Day"],
       sessionTypes: ["Group", "Private"],
       title: "Ruts Explore (ADV L1) - Group: Rs.6200 / Private: Rs.8200",
     ),
     TrainingProgram(
       id: 5,
       name: "Ruts Conquer (ADV L2)",
-      durations: ["full day"],
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)", "Full Day"],
       sessionTypes: ["Group", "Private"],
       title: "Ruts Conquer (ADV L2) - Group: Rs.8200 / Private: Rs.10,500",
     ),
     TrainingProgram(
       id: 6,
       name: "Ruts Grit (EnduroX L1)",
-      durations: ["full day"],
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)", "Full Day"],
       sessionTypes: ["Group", "Private"],
       title: "Ruts Grit (EnduroX L1) - Group: Rs.3800 / Private: Rs.5500",
     ),
     TrainingProgram(
       id: 7,
       name: "Ruts Enduro Mastery (EnduroX L2)",
-      durations: ["full day"],
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)", "Full Day"],
       sessionTypes: ["Group", "Private"],
       title:
           "Ruts Enduro Mastery (EnduroX L2) - Group: Rs.5800 / Private: Rs.7500",
@@ -233,56 +236,66 @@ class EnquiryController extends GetxController {
     TrainingProgram(
       id: 8,
       name: "Ruts Weekend",
-      durations: ["2 days in weekends"],
+      durations: ["2 Days (Weekend Special)"],
       sessionTypes: ["Private"],
       title: "Ruts Weekend - Rs.14,500",
     ),
     TrainingProgram(
       id: 9,
       name: "Rally Raid & Roadbook Theory",
-      durations: ["half day"],
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)"],
       sessionTypes: ["Private"],
       title: "Rally Raid & Roadbook Theory - Rs.2500",
     ),
     TrainingProgram(
       id: 10,
       name: "Young Ruts",
-      durations: ["half day", "full day", "monthly"],
+      durations: [
+        "Morning (9AM–12PM)",
+        "Afternoon (2PM–5PM)",
+        "Full Day",
+        "Monthly",
+      ],
       sessionTypes: ["Private"],
       title: "Young Ruts - Session: Rs.4500 / Monthly: Rs.32,000",
     ),
     TrainingProgram(
       id: 11,
       name: "Ruts n Queens",
-      durations: ["half day", "full day", "weekend"],
+      durations: [
+        "Morning (9AM–12PM)",
+        "Afternoon (2PM–5PM)",
+        "Full Day",
+        "Weekend",
+      ],
       sessionTypes: ["Private"],
       title: "Ruts n Queens - Half: Rs.2500 / Full: Rs.4500 / Weekend: Rs.8999",
     ),
     TrainingProgram(
       id: 12,
       name: "Adult One-on-One",
-      durations: ["custom (single day)", "monthly"],
+      durations: ["Custom (Single Day)", "Monthly"],
       sessionTypes: ["Private"],
       title: "Adult One-on-One - One Day: Rs.4999 / Monthly: Rs.30,000",
     ),
     TrainingProgram(
       id: 13,
       name: "Custom Training Plan",
-      durations: ["custom"],
+      durations: ["Custom"],
       sessionTypes: ["Private"],
       title: "Custom Training Plan",
     ),
     TrainingProgram(
       id: 14,
       name: "Open Training - Track Access Only",
-      durations: ["full day"],
+      durations: ["Full Day"],
       sessionTypes: ["Private"],
       title: "Open Session - Rs.1600/day",
     ),
     TrainingProgram(
       id: 15,
       name: "Dirt Bike Training - Beginner Level",
-      durations: ["full day"],
+      durations: ["Full Day"],
       sessionTypes: ["Private"],
       title: "Dirt Bike Training - Beginner Level",
     ),
@@ -610,5 +623,39 @@ class EnquiryController extends GetxController {
         showError(res.data['message']);
       }
     } catch (e) {}
+  }
+
+  Future<void> updateBooking(String? id, Booking bookingData) async {
+    try {
+      final data = bookingData.toJson();
+      data.remove("_id"); // ✅ prevent ObjectId cast error
+
+      var res = await api.put("${EndPoints.booking}/$id", data: data);
+
+      if (res.data['success']) {
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
+      }
+    } catch (e) {
+      printData(e);
+    }
+  }
+
+  Future<void> updateAttendance(String? id, Attendance attendance) async {
+    try {
+      final data = attendance.toJson();
+      data.remove("_id"); // ✅ prevent ObjectId cast error
+
+      var res = await api.put("${EndPoints.attendance}/$id", data: data);
+
+      if (res.data['success']) {
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
+      }
+    } catch (e) {
+      printData(e);
+    }
   }
 }

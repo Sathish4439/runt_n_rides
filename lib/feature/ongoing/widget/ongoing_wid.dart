@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
 import 'package:RUTSNRIDES/core/services/api_service.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
+import 'package:RUTSNRIDES/feature/enquiry/model/view/confrim_booking_page.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/view/widget/enquity_wid.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -39,12 +40,12 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
   late TextEditingController _remainingController;
 
   final List<String> _attendanceOptions = ['Present', 'Absent', 'Cancelled'];
-  final List<String> _durationOptions = ['Full Day', 'Half Day', 'Quarter Day'];
-  final List<String> _completionOptions = [
-    'Completed',
-    'Partial',
-    'Not Started',
+  final List<String> _durationOptions = [
+    "Morning (9AM–12PM)",
+    "Afternoon (2PM–5PM)",
+    "Full Day",
   ];
+  final List<String> _completionOptions = ['Partial'];
 
   @override
   void initState() {
@@ -128,14 +129,76 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
           visible: controller.selectedDays.isNotEmpty,
           child: GestureDetector(
             onTap: () async {
+              String? selectedDuration;
+
+              // ✅ Show dialog with dropdown
+              String? duration = await showDialog<String>(
+                context: context,
+                builder: (context) {
+                  return StatefulBuilder(
+                    builder: (context, setState) {
+                      return AlertDialog(
+                        title: const Text("Select Session Duration"),
+                        content: DropdownButtonFormField<String>(
+                          value: selectedDuration,
+                          items: const [
+                            DropdownMenuItem(
+                              value: "Full Day",
+                              child: Text("Full Day"),
+                            ),
+                            DropdownMenuItem(
+                              value: "Morning (9AM–12PM)",
+                              child: Text("Morning (9AM–12PM)"),
+                            ),
+                            DropdownMenuItem(
+                              value: "Afternoon (2PM–5PM)",
+                              child: Text("Afternoon (2PM–5PM)"),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              selectedDuration = val;
+                            });
+                          },
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: "Choose Duration",
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, null),
+                            child: const Text("Cancel"),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (selectedDuration != null) {
+                                Navigator.pop(context, selectedDuration);
+                              }
+                            },
+                            child: const Text("Confirm"),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              );
+
+              if (duration == null) return; // user cancelled ❌
+
               try {
                 var bodyJson = {
                   "plannedDate": controller.selectedDays
                       .map(
-                        (d) => d.toIso8601String().split("T")[0],
-                      ) // keep only YYYY-MM-DD
+                        (d) => {
+                          "date": d.toIso8601String().split("T")[0],
+                          "duration": duration, // ✅ Use chosen duration
+                        },
+                      )
                       .toList(),
                 };
+
                 var res = await api.put(
                   "${EndPoints.booking}/${widget.attendance.bookingId}/${EndPoints.planned_date}",
                   data: bodyJson,
@@ -153,6 +216,7 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                 controller.fetchAttendance();
               }
             },
+
             child: Container(
               height: 60,
               width: 60,
@@ -208,7 +272,7 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                       // Convert plannedDate strings from API into DateTime list
                       final plannedDates =
                           widget.attendance.bookingData?.plannedDate
-                              .map((d) => DateTime.parse(d))
+                              .map((d) => DateTime.parse(d.date))
                               .toList() ??
                           [];
 
@@ -314,21 +378,30 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                     },
                     calendarBuilders: CalendarBuilders(
                       defaultBuilder: (context, day, focusedDay) {
+                        printData(widget.attendance.bookingData!.toJson());
                         final plannedDates =
                             widget.attendance.bookingData?.plannedDate
-                                .map((d) => DateTime.tryParse(d))
+                                .map((d) => DateTime.tryParse(d.date))
                                 .where((d) => d != null)
                                 .cast<DateTime>()
                                 .toList() ??
                             [];
 
+                        printData("plannedDates $plannedDates");
+                        printData(
+                          "widget.attendance.bookingData?.plannedDate ${widget.attendance.bookingData?.plannedDate}",
+                        );
+
                         final completedDates =
-                            widget.attendance.completedDates
-                                ?.map((d) => DateTime.tryParse(d))
-                                .where((d) => d != null)
-                                .cast<DateTime>()
-                                .toList() ??
-                            [];
+                            widget.attendance.completedDates ?? [];
+
+                        // Find if this day has a completed entry
+                        final completedEntry = completedDates.firstWhere(
+                          (d) => isSameDay(DateTime.tryParse(d.date), day),
+                          orElse: () => CompletedDate(date: "", duration: ""),
+                        );
+
+                        final isCompleted = completedEntry.date.isNotEmpty;
 
                         final isPlanned = plannedDates.any(
                           (d) => isSameDay(d, day),
@@ -336,9 +409,41 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                         final isSelected = controller.selectedDays.any(
                           (d) => isSameDay(d, day),
                         );
-                        final isCompleted = completedDates.any(
-                          (d) => isSameDay(d, day),
-                        );
+
+                        // 🔹 Wrap with GestureDetector for completed dates
+                        if (isCompleted) {
+                          return GestureDetector(
+                            onTap: () {
+                              // 🔹 Show dialog with completed duration info
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: const Text("Completed Session"),
+                                    content: Text(
+                                      "${day.day}/${day.month}/${day.year}\nDuration: ${completedEntry.duration}",
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text("OK"),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(child: Text("${day.day}")),
+                            ),
+                          );
+                        }
 
                         if (isPlanned && isSelected) {
                           return Container(
@@ -363,17 +468,6 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                             margin: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
                               color: Colors.orange,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(child: Text("${day.day}")),
-                          );
-                        } else if (isCompleted) {
-                          return Container(
-                            margin: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(
-                                0.5,
-                              ), // 🔹 Completed date color
                               shape: BoxShape.circle,
                             ),
                             child: Center(child: Text("${day.day}")),
@@ -420,92 +514,122 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                 ),
 
                 Divider(),
-                _infoText(
-                  "Total Fees ",
-                  widget.attendance.bookingData!.totalFee.toString(),
-                ),
-                _infoText(
-                  "Total Amount paid ",
-                  widget.attendance.bookingData!.amountPaid.toString(),
-                ),
-                Divider(),
-                _infoText(
-                  "Head size ",
-                  widget.attendance.bookingData!.headSize.toString() + " CM",
-                ),
-                _infoText(
-                  "Pant Size",
-                  widget.attendance.bookingData!.pantSize.toString() + " CM",
-                ),
-                _infoText(
-                  "Height ",
-                  widget.attendance.bookingData!.height.toString() + " CM",
-                ),
-                _infoText(
-                  " Weight ",
-                  widget.attendance.bookingData!.weight.toString() + " KG",
-                ),
-                _infoText(
-                  "Shirt Size ",
-                  widget.attendance.bookingData!.shirtSize.toString(),
-                ),
+                if (widget.attendance.bookingData != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _infoText(
+                        "Total Fees",
+                        widget.attendance.bookingData!.totalFee?.toString() ??
+                            "0",
+                      ),
+                      _infoText(
+                        "Total Amount Paid",
+                        widget.attendance.bookingData!.amountPaid?.toString() ??
+                            "0",
+                      ),
+                      const Divider(),
+                      _infoText(
+                        "Head Size",
+                        "${widget.attendance.bookingData!.headSize ?? "-"} CM",
+                      ),
+                      _infoText(
+                        "Pant Size",
+                        "${widget.attendance.bookingData!.pantSize ?? "-"} CM",
+                      ),
+                      _infoText(
+                        "Height",
+                        "${widget.attendance.bookingData!.height ?? "-"} CM",
+                      ),
+                      _infoText(
+                        "Weight",
+                        "${widget.attendance.bookingData!.weight ?? "-"} KG",
+                      ),
+                      _infoText(
+                        "Shirt Size",
+                        widget.attendance.bookingData!.shirtSize ?? "-",
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 10),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    SizedBox(
-                      height: 50,
-                      width: Get.width * 0.50,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        shrinkWrap: true,
-                        itemBuilder: (context, index) {
-                          var filename = widget
-                              .attendance
-                              .bookingData!
-                              .paymentProof[index];
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => FullScreenImagePage(
-                                    imageUrl: "${EndPoints.fetch}/${filename}",
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Image.network(
-                              "${EndPoints.fetch}/${filename}",
-                            ),
-                          );
-                        },
-                        separatorBuilder: (context, index) {
-                          return SizedBox(width: 5);
-                        },
-                        itemCount:
-                            widget.attendance.bookingData!.paymentProof.length,
-                      ),
-                    ),
-
-                    CommonButton(
-                      text: "Upload image",
+                Center(
+                  child: SizedBox(
+                    width: Get.width * 0.40,
+                    child: CommonButton(
+                      text: "Complete",
                       onTap: () async {
-                        final pickedFile = await ImagePicker().pickImage(
-                          source: ImageSource.gallery,
+                        // final pickedFile = await ImagePicker().pickImage(
+                        //   source: ImageSource.gallery,
+                        // );
+                        // if (pickedFile != null) {
+                        //   File file = File(pickedFile.path);
+                        //   await controller.pickAndUploadPaymentProof(
+                        //     file,
+                        //     widget.attendance.bookingData!.id!,
+                        //   );
+                        // }
+
+                        Get.to(
+                          () => ConfirmBookingPage(
+                            from: "attendance",
+                            bookingData: widget.attendance.bookingData,
+                            attendance: widget.attendance,
+                          ),
                         );
-                        if (pickedFile != null) {
-                          File file = File(pickedFile.path);
-                          await controller.pickAndUploadPaymentProof(
-                            file,
-                            widget.attendance.bookingData!.id!,
-                          );
-                        }
                       },
                     ),
-                  ],
+                  ),
                 ),
+
+                // Row(
+                //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //   children: [
+                //     SizedBox(
+                //       height: 50,
+                //       width: Get.width * 0.50,
+                //       child: ListView.separated(
+                //         scrollDirection: Axis.horizontal,
+                //         shrinkWrap: true,
+                //         itemBuilder: (context, index) {
+                //           final filename = widget
+                //               .attendance
+                //               .bookingData
+                //               ?.paymentProof?[index];
+                //           if (filename == null) return const SizedBox.shrink();
+
+                //           return GestureDetector(
+                //             onTap: () {
+                //               Navigator.push(
+                //                 context,
+                //                 MaterialPageRoute(
+                //                   builder: (_) => FullScreenImagePage(
+                //                     imageUrl: "${EndPoints.fetch}/$filename",
+                //                   ),
+                //                 ),
+                //               );
+                //             },
+                //             child: Image.network(
+                //               "${EndPoints.fetch}/$filename",
+                //               fit: BoxFit.cover,
+                //             ),
+                //           );
+                //         },
+                //         separatorBuilder: (context, index) =>
+                //             const SizedBox(width: 5),
+                //         itemCount:
+                //             widget
+                //                 .attendance
+                //                 .bookingData
+                //                 ?.paymentProof
+                //                 ?.length ??
+                //             0,
+                //       ),
+                //     ),
+
+                //
+                //   ],
+                // ),
               ],
             ),
           ),
@@ -851,6 +975,7 @@ Widget buildFilterSection(
 Widget buildAttendanceList(
   BuildContext context,
   AttendanceController controller,
+  DateTime selecteddate,
 ) {
   return ListView.builder(
     itemCount: controller.filteredList.length,
@@ -893,39 +1018,64 @@ Widget buildAttendanceList(
             snackPosition: SnackPosition.BOTTOM,
           );
         },
-        child: buildAttendanceCard(attendance, context, controller),
+        child: buildAttendanceCard(
+          attendance,
+          context,
+          controller,
+          selecteddate,
+        ),
       );
     },
   );
+}
+
+String GetSessionByDate(DateTime date, List<CompletedDate> li) {
+  for (var i in li) {
+    // Parse string to DateTime
+    final parsed = DateTime.tryParse(i.date);
+    if (parsed != null) {
+      print("Checking planned date: $parsed"); // ✅ debug print
+
+      if (parsed.year == date.year &&
+          parsed.month == date.month &&
+          parsed.day == date.day) {
+        return i.duration;
+      }
+    }
+  }
+  return "No Session"; // default if not found
 }
 
 Widget buildAttendanceCard(
   Attendance attendance,
   BuildContext context,
   AttendanceController controller,
+  DateTime selectedDate,
 ) {
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     child: IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch, // ✅ make heights equal
+        crossAxisAlignment: CrossAxisAlignment.stretch, // ✅ equal height
         children: [
           // First Card: Attendance info
           Expanded(
             flex: 3,
-            child: Card(
-              color: attendance.sessionCompletion == "Completed"
-                  ? Colors.blue.shade100
-                  : AppTheme.textOnPrimary,
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
+            child: GestureDetector(
+              onTap: () {
+                showAttendanceSheet(attendance, context, controller);
+              },
+              child: Card(
+                color: attendance.sessionCompletion == "Completed"
+                    ? Colors.blue.shade100
+                    : AppTheme.textOnPrimary,
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Row(
+                    children: [
+                      // Avatar
+                      CircleAvatar(
                         backgroundColor: getStatusColor(
                           attendance.attendanceStatus,
                         ),
@@ -937,24 +1087,37 @@ Widget buildAttendanceCard(
                           ),
                         ),
                       ),
-                      title: Text(
-                        attendance.riderName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      const SizedBox(width: 12),
+
+                      // Rider info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              attendance.riderName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text('Phone: ${attendance.phoneNumber}'),
+                            Text(
+                              'Session: ${attendance.sessionsCompleted}/${attendance.totalSessions}',
+                            ),
+
+                            // ✅ Planned session for selected date
+                            Text(
+                              'Planned: ${GetSessionByDate(selectedDate, attendance.bookingData!.plannedDate)}',
+                              style: const TextStyle(color: Colors.green),
+                            ),
+                          ],
+                        ),
                       ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Phone: ${attendance.phoneNumber}'),
-                          Text(
-                            'Session: ${attendance.sessionsCompleted}/${attendance.totalSessions}',
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        showAttendanceSheet(attendance, context, controller);
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -967,11 +1130,12 @@ Widget buildAttendanceCard(
             flex: 1,
             child: Card(
               elevation: 2,
-              child: GestureDetector(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
                 onTap: () {
                   Get.to(() => LapsScreen(attendance: attendance));
                 },
-                child: const Icon(Icons.watch_later_outlined),
+                child: const Center(child: Icon(Icons.watch_later_outlined)),
               ),
             ),
           ),
@@ -1165,7 +1329,7 @@ extension AttendanceCopyWith on Attendance {
     String? updatedAt,
     String? createdAt,
     String? bookingId,
-    List<String>? completedDates,
+    List<CompletedDate>? completedDates,
   }) {
     return Attendance(
       id: id ?? this.id,

@@ -226,13 +226,10 @@ Widget buildStatsSummary(BookingController controller) {
       print("➡️ Booking ID: ${b.id}, Status: $status (Checking for PAID)");
       return status == 'PAID';
     }).length;
-    
 
     final totalRevenue = bookings.fold(0.0, (sum, b) {
-     
       return sum + b.amountPaid;
     });
-   
 
     final outstanding = bookings.fold(0.0, (sum, b) {
       final due = b.totalFee - b.receivedAmount;
@@ -411,7 +408,12 @@ Widget buildBookingCard(
                     text: "Edit Details",
                     onTap: () async {
                       print(booking.toJson());
-                      Get.to(ConfirmBookingPage(bookingData: booking));
+                      Get.to(
+                        ConfirmBookingPage(
+                          bookingData: booking,
+                          from: "booking",
+                        ),
+                      );
                     },
                   ),
                 ],

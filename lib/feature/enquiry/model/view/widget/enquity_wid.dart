@@ -204,7 +204,10 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
                     : AppTheme.enquirySecondary,
                 onTap: () async {
                   print(lead.toJson());
-                  Get.to(() => ConfirmBookingPage(enquirydata: lead));
+                  Get.to(
+                    () =>
+                        ConfirmBookingPage(enquirydata: lead, from: "enquiry"),
+                  );
                 },
               ),
 
@@ -258,21 +261,26 @@ class MultiDatePickerWidget extends StatelessWidget {
           },
         ),
 
+        // inside your Obx widget
         Obx(
           () => Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: controller.plannedData
-                .map(
-                  (date) => Chip(
-                    label: Text(date),
-                    deleteIcon: Icon(Icons.close),
-                    onDeleted: () => controller.removeDate(date),
-                  ),
-                )
-                .toList(),
+            children: controller.plannedData.map((date) {
+              // assume date.date is "2025-09-17"
+              final parsedDate = DateTime.parse(date.date);
+              final formatted = DateFormat("MMMM dd, yyyy").format(parsedDate);
+              // e.g. "17 Sep 2025"
+
+              return Chip(
+                label: Text(formatted),
+                deleteIcon: const Icon(Icons.close),
+                onDeleted: () => controller.removeDate(date.date),
+              );
+            }).toList(),
           ),
         ),
+
         const SizedBox(height: 12),
       ],
     );
@@ -702,7 +710,6 @@ class ImagePickerWidget extends StatelessWidget {
   }
 }
 
-
 class FullScreenImagePage extends StatelessWidget {
   final String imageUrl;
 
@@ -719,9 +726,7 @@ class FullScreenImagePage extends StatelessWidget {
         imageProvider: NetworkImage(imageUrl),
         minScale: PhotoViewComputedScale.contained,
         maxScale: PhotoViewComputedScale.covered * 3.0,
-        backgroundDecoration: const BoxDecoration(
-          color: Colors.black,
-        ),
+        backgroundDecoration: const BoxDecoration(color: Colors.black),
       ),
     );
   }

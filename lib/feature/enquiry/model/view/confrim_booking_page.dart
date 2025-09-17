@@ -1,5 +1,6 @@
 import 'dart:ffi' hide Size;
 
+import 'package:RUTSNRIDES/core/common_wid/widget.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/program_model.dart';
 import 'package:flutter/material.dart';
@@ -13,8 +14,16 @@ import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 class ConfirmBookingPage extends StatefulWidget {
   final Lead? enquirydata;
   final Booking? bookingData;
+  final Attendance? attendance;
+  final String from;
 
-  const ConfirmBookingPage({super.key, this.enquirydata, this.bookingData});
+  const ConfirmBookingPage({
+    super.key,
+    this.enquirydata,
+    this.bookingData,
+    required this.from,
+    this.attendance,
+  });
   @override
   State<ConfirmBookingPage> createState() => _ConfirmBookingPageState();
 }
@@ -235,196 +244,364 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 keyboard: TextInputType.number,
               ),
 
-              Center(
-                child: Obx(
-                  () => ElevatedButton(
-                    style: ButtonStyle(
-                      minimumSize: MaterialStateProperty.all<Size>(
-                        Size(double.infinity, 56),
-                      ),
-                      padding: MaterialStateProperty.all<EdgeInsets>(
-                        EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      ),
-                      shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+              Visibility(
+                visible: widget.from == "booking",
+                child: CommonButton(
+                  text: "Update Booking Data",
+                  onTap: () async {
+                    if (widget.from == "booking" &&
+                        widget.bookingData != null) {
+                      printData(controller.plannedData);
+                      final booking = Booking(
+                        id: "",
+                        accomdation: controller.accomdation.value == true
+                            ? "yes"
+                            : "no",
+                        plannedDate: controller.plannedData,
+                        paymentProof: [controller.paymentProof.value],
+                        timestamp: DateTime.now().millisecondsSinceEpoch
+                            .toString(),
+                        riderName: controller.riderName.text,
+                        medicalCondition: controller.medicalCondition.text,
+                        phone: controller.phone.text,
+                        programBooked: controller.selectedProgram.value.title!,
+                        programDetails: controller.programDetails.text,
+                        bookingDate: controller.bookingDate.text,
+                        preferredSessionDate:
+                            controller.preferredSessionDate.text,
+                        trainingSlot: controller.trainingSlot.value,
+                        sessionType: controller.sessionType.value,
+                        headSize: controller.headSize.text,
+                        pantSize: controller.pantSize.text,
+                        shirtSize: controller.shirtSize.text,
+                        height: controller.height.text,
+                        weight: controller.weight.text,
+                        bikeRental: controller.bikeRental.value ? "Yes" : "No",
+                        gearRental: controller.gearRental.value ? "Yes" : "No",
+                        totalFee:
+                            double.tryParse(controller.totalFee.text) ?? 0.0,
+                        paymentStatus: controller.paymentStatus.value,
+                        amountPaid:
+                            double.tryParse(controller.amtPaid.text) ?? 0.0,
+                        paymentMode: controller.paymentMode.value,
+                        riderAge: int.tryParse(controller.age.text) ?? 0,
+                        parentName: controller.parentName.text,
+                        bookingType: controller.selectedBookingType.value,
+                        receivedAmount: 0,
+                        bookingStatus: controller.bookingStatus.value,
+                      );
+
+                      await controller.updateBooking(
+                        widget.bookingData!.id,
+                        booking,
+                      );
+                    }
+                  },
+                ),
+              ),
+              Visibility(
+                visible: widget.from == "attendance",
+                child: CommonButton(
+                  text: "Complete Booking",
+                  onTap: () async {
+                    if (validateData()) {
+                      if ((_formKey.currentState != null &&
+                              _formKey.currentState!.validate()) &&
+                          widget.attendance != null &&
+                          widget.bookingData != null) {
+                        // Create booking data and submit
+                        printData(controller.plannedData);
+                        final booking = Booking(
+                          id: "",
+                          accomdation: controller.accomdation.value == true
+                              ? "yes"
+                              : "no",
+                          plannedDate: controller.plannedData,
+                          paymentProof: [controller.paymentProof.value],
+                          timestamp: DateTime.now().millisecondsSinceEpoch
+                              .toString(),
+                          riderName: controller.riderName.text,
+                          medicalCondition: controller.medicalCondition.text,
+                          phone: controller.phone.text,
+                          programBooked:
+                              controller.selectedProgram.value.title!,
+                          programDetails: controller.programDetails.text,
+                          bookingDate: controller.bookingDate.text,
+                          preferredSessionDate:
+                              controller.preferredSessionDate.text,
+                          trainingSlot: controller.trainingSlot.value,
+                          sessionType: controller.sessionType.value,
+                          headSize: controller.headSize.text,
+                          pantSize: controller.pantSize.text,
+                          shirtSize: controller.shirtSize.text,
+                          height: controller.height.text,
+                          weight: controller.weight.text,
+                          bikeRental: controller.bikeRental.value
+                              ? "Yes"
+                              : "No",
+                          gearRental: controller.gearRental.value
+                              ? "Yes"
+                              : "No",
+                          totalFee:
+                              double.tryParse(controller.totalFee.text) ?? 0.0,
+                          paymentStatus: controller.paymentStatus.value,
+                          amountPaid:
+                              double.tryParse(controller.amtPaid.text) ?? 0.0,
+                          paymentMode: controller.paymentMode.value,
+                          riderAge: int.tryParse(controller.age.text) ?? 0,
+                          parentName: controller.parentName.text,
+                          bookingType: controller.selectedBookingType.value,
+                          receivedAmount: 0,
+                          bookingStatus: controller.bookingStatus.value,
+                        );
+
+                        await controller.updateBooking(
+                          widget.bookingData!.id,
+                          booking,
+                        );
+
+                        final attendance = Attendance(
+                          id: widget.attendance!.id,
+                          bookingId: booking.id.toString(),
+                          createdAt: widget.attendance!.createdAt,
+                          // clone all completed dates instead of reusing reference
+                          completedDates: widget.attendance!.completedDates
+                              .map(
+                                (d) => CompletedDate(
+                                  date: d.date,
+                                  duration: d.duration,
+                                ),
+                              )
+                              .toList(),
+                          updatedAt: DateTime.now().toIso8601String(),
+                          riderName: widget.attendance!.riderName,
+                          phoneNumber: widget.attendance!.phoneNumber,
+                          programBooked: widget.attendance!.programBooked,
+                          sessionDate: widget.attendance!.sessionDate,
+                          sessionNumber: widget.attendance!.sessionNumber,
+                          totalSessions: widget.attendance!.totalSessions,
+                          attendanceStatus: widget.attendance!.attendanceStatus,
+                          sessionDuration: widget.attendance!.sessionDuration,
+                          sessionCompletion: "Completed",
+                          sessionsCompleted:
+                              widget.attendance!.sessionsCompleted,
+                          fullDaysDone: widget.attendance!.fullDaysDone,
+                          halfDaysDone: widget.attendance!.halfDaysDone,
+                          sessionsRemaining:
+                              widget.attendance!.sessionsRemaining,
+                        );
+
+                        if (widget.attendance != null &&
+                            widget.bookingData != null) {
+                          await controller.updateAttendance(
+                            widget.attendance!.id,
+                            attendance,
+                          );
+                        }
+                      }
+                    }
+                  },
+                ),
+              ),
+
+              Visibility(
+                visible: widget.from == "lead",
+                child: Center(
+                  child: Obx(
+                    () => ElevatedButton(
+                      style: ButtonStyle(
+                        minimumSize: MaterialStateProperty.all<Size>(
+                          Size(double.infinity, 56),
                         ),
+                        padding: MaterialStateProperty.all<EdgeInsets>(
+                          EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        ),
+                        shape:
+                            MaterialStateProperty.all<RoundedRectangleBorder>(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                        backgroundColor: MaterialStateProperty.all<Color>(
+                          Colors.transparent,
+                        ),
+                        shadowColor: MaterialStateProperty.all<Color>(
+                          Colors.transparent,
+                        ),
+                        overlayColor: MaterialStateProperty.resolveWith<Color>((
+                          Set<MaterialState> states,
+                        ) {
+                          return Colors.blue[800]!.withOpacity(0.1);
+                        }),
                       ),
-                      backgroundColor: MaterialStateProperty.all<Color>(
-                        Colors.transparent,
-                      ),
-                      shadowColor: MaterialStateProperty.all<Color>(
-                        Colors.transparent,
-                      ),
-                      overlayColor: MaterialStateProperty.resolveWith<Color>((
-                        Set<MaterialState> states,
-                      ) {
-                        return Colors.blue[800]!.withOpacity(0.1);
-                      }),
-                    ),
-                    onPressed: controller.loadSubmit.value
-                        ? null // Disable button when loading
-                        : () async {
-                            if (validateData()) {
-                              if ((_formKey.currentState != null &&
-                                  _formKey.currentState!.validate())) {
-                                // Create booking data and submit
-                                printData(controller.plannedData);
-                                final booking = Booking(
-                                  id: "",
-                                  accomdation:
-                                      controller.accomdation.value == true
-                                      ? "yes"
-                                      : "no",
-                                  plannedDate: controller.plannedData,
-                                  paymentProof: [controller.paymentProof.value],
-                                  timestamp: DateTime.now()
-                                      .millisecondsSinceEpoch
-                                      .toString(),
-                                  riderName: controller.riderName.text,
-                                  medicalCondition:
-                                      controller.medicalCondition.text,
-                                  phone: controller.phone.text,
-                                  programBooked:
-                                      controller.selectedProgram.value.title!,
-                                  programDetails:
-                                      controller.programDetails.text,
-                                  bookingDate: controller.bookingDate.text,
-                                  preferredSessionDate:
-                                      controller.preferredSessionDate.text,
-                                  trainingSlot: controller.trainingSlot.value,
-                                  sessionType: controller.sessionType.value,
-                                  headSize: controller.headSize.text,
-                                  pantSize: controller.pantSize.text,
-                                  shirtSize: controller.shirtSize.text,
-                                  height: controller.height.text,
-                                  weight: controller.weight.text,
-                                  bikeRental: controller.bikeRental.value
-                                      ? "Yes"
-                                      : "No",
-                                  gearRental: controller.gearRental.value
-                                      ? "Yes"
-                                      : "No",
-                                  totalFee:
-                                      double.tryParse(
-                                        controller.totalFee.text,
-                                      ) ??
-                                      0.0,
-                                  paymentStatus: controller.paymentStatus.value,
-                                  amountPaid:
-                                      double.tryParse(
-                                        controller.amtPaid.text,
-                                      ) ??
-                                      0.0,
-                                  paymentMode: controller.paymentMode.value,
-                                  riderAge:
-                                      int.tryParse(controller.age.text) ?? 0,
-                                  parentName: controller.parentName.text,
-                                  bookingType:
-                                      controller.selectedBookingType.value,
-                                  receivedAmount: 0,
-                                  bookingStatus: controller.bookingStatus.value,
-                                );
-
-                                final attendance = Attendance(
-                                  id: "",
-                                  //trainingStarted: false,
-                                  bookingId: booking.id.toString(),
-                                  createdAt: "",
-                                  completedDates: [],
-                                  updatedAt: "",
-                                  riderName: controller.riderName.text,
-                                  phoneNumber: controller.phone.text,
-                                  programBooked:
-                                      controller.selectedProgram.value.name,
-                                  sessionDate: '',
-                                  sessionNumber: 0,
-                                  totalSessions: 0,
-                                  attendanceStatus: "Absent",
-                                  sessionDuration: "Full Day",
-                                  sessionCompletion: "Not Started",
-                                  sessionsCompleted: 0,
-                                  fullDaysDone: 0,
-                                  halfDaysDone: 0,
-                                  sessionsRemaining: 0,
-                                );
-
-                                printData(controller.plannedData.toString());
-                                if (widget.enquirydata != null) {
-                                  await controller.submitBookingAndAttendance(
-                                    booking,
-                                    attendance,
-                                    widget.enquirydata!.id,
+                      onPressed: controller.loadSubmit.value
+                          ? null // Disable button when loading
+                          : () async {
+                              if (validateData()) {
+                                if ((_formKey.currentState != null &&
+                                    _formKey.currentState!.validate())) {
+                                  // Create booking data and submit
+                                  printData(controller.plannedData);
+                                  final booking = Booking(
+                                    id: "",
+                                    accomdation:
+                                        controller.accomdation.value == true
+                                        ? "yes"
+                                        : "no",
+                                    plannedDate: controller.plannedData,
+                                    paymentProof: [
+                                      controller.paymentProof.value,
+                                    ],
+                                    timestamp: DateTime.now()
+                                        .millisecondsSinceEpoch
+                                        .toString(),
+                                    riderName: controller.riderName.text,
+                                    medicalCondition:
+                                        controller.medicalCondition.text,
+                                    phone: controller.phone.text,
+                                    programBooked:
+                                        controller.selectedProgram.value.title!,
+                                    programDetails:
+                                        controller.programDetails.text,
+                                    bookingDate: controller.bookingDate.text,
+                                    preferredSessionDate:
+                                        controller.preferredSessionDate.text,
+                                    trainingSlot: controller.trainingSlot.value,
+                                    sessionType: controller.sessionType.value,
+                                    headSize: controller.headSize.text,
+                                    pantSize: controller.pantSize.text,
+                                    shirtSize: controller.shirtSize.text,
+                                    height: controller.height.text,
+                                    weight: controller.weight.text,
+                                    bikeRental: controller.bikeRental.value
+                                        ? "Yes"
+                                        : "No",
+                                    gearRental: controller.gearRental.value
+                                        ? "Yes"
+                                        : "No",
+                                    totalFee:
+                                        double.tryParse(
+                                          controller.totalFee.text,
+                                        ) ??
+                                        0.0,
+                                    paymentStatus:
+                                        controller.paymentStatus.value,
+                                    amountPaid:
+                                        double.tryParse(
+                                          controller.amtPaid.text,
+                                        ) ??
+                                        0.0,
+                                    paymentMode: controller.paymentMode.value,
+                                    riderAge:
+                                        int.tryParse(controller.age.text) ?? 0,
+                                    parentName: controller.parentName.text,
+                                    bookingType:
+                                        controller.selectedBookingType.value,
+                                    receivedAmount: 0,
+                                    bookingStatus:
+                                        controller.bookingStatus.value,
                                   );
-                                } else {
-                                  print("test");
+
+                                  final attendance = Attendance(
+                                    id: "",
+                                    //trainingStarted: false,
+                                    bookingId: booking.id.toString(),
+                                    createdAt: "",
+                                    completedDates: [],
+                                    updatedAt: "",
+                                    riderName: controller.riderName.text,
+                                    phoneNumber: controller.phone.text,
+                                    programBooked:
+                                        controller.selectedProgram.value.name,
+                                    sessionDate: '',
+                                    sessionNumber: 0,
+                                    totalSessions: 0,
+                                    attendanceStatus: "Absent",
+                                    sessionDuration: "Full Day",
+                                    sessionCompletion: "Not Started",
+                                    sessionsCompleted: 0,
+                                    fullDaysDone: 0,
+                                    halfDaysDone: 0,
+                                    sessionsRemaining: 0,
+                                  );
+
+                                  if (widget.enquirydata != null) {
+                                    await controller.submitBookingAndAttendance(
+                                      booking,
+                                      attendance,
+                                      widget.enquirydata!.id,
+                                    );
+                                  } else {
+                                    print("test");
+                                  }
                                 }
                               }
-                            }
-                          },
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blue[700]!, Colors.blue[500]!],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.blue.withOpacity(0.3),
-                            blurRadius: 8,
-                            offset: Offset(0, 4),
+                            },
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.blue[700]!, Colors.blue[500]!],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
-                        ],
-                      ),
-                      child: Container(
-                        constraints: BoxConstraints(minHeight: 56),
-                        alignment: Alignment.center,
-                        child: controller.loadSubmit.value
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          constraints: BoxConstraints(minHeight: 56),
+                          alignment: Alignment.center,
+                          child: controller.loadSubmit.value
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
                                       ),
                                     ),
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Please wait...',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Please wait...',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.rocket_launch,
+                                      size: 22,
                                       color: Colors.white,
                                     ),
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.rocket_launch,
-                                    size: 22,
-                                    color: Colors.white,
-                                  ),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    'Launch Booking',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'Launch Booking',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ),
                   ),

@@ -1,3 +1,5 @@
+import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
+
 class Booking {
   final String? id; // MongoDB document _id
   final String timestamp;
@@ -26,7 +28,7 @@ class Booking {
   final String bookingType;
   final double receivedAmount;
   final String bookingStatus;
-  final List<String> plannedDate;
+  final List<CompletedDate> plannedDate;
   final String medicalCondition;
   final String accomdation;
 
@@ -100,16 +102,18 @@ class Booking {
       bookingType: json["bookingType"] ?? "Online",
       receivedAmount: (json["receivedAmount"] ?? 0).toDouble(),
       bookingStatus: json["bookingStatus"] ?? "",
-      plannedDate: (json["plannedDate"] as List<dynamic>? ?? [])
-          .map((e) => e.toString())
+      plannedDate: (json['plannedDate'] as List<dynamic>? ?? [])
+          .map((e) => CompletedDate.fromJson(e))
           .toList(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      "_id": id,
       "timestamp": timestamp,
       "fullNameOfRider": riderName,
+      "medicalCondition": medicalCondition,
       "phoneNumber": phone,
       "programBooked": programBooked,
       "programDetails": programDetails,
@@ -122,10 +126,10 @@ class Booking {
       "pantSize": pantSize,
       "headSize": headSize,
       "sessionType": sessionType,
+      "accomdation": accomdation,
       "bikeRental": bikeRental,
       "gearRental": gearRental,
       "totalProgramFee": totalFee,
-      "accomdation": accomdation,
       "paymentStatus": paymentStatus,
       "amountPaid": amountPaid,
       "paymentMode": paymentMode,
@@ -135,7 +139,7 @@ class Booking {
       "bookingType": bookingType,
       "receivedAmount": receivedAmount,
       "bookingStatus": bookingStatus,
-      "plannedDate": plannedDate,
+      "plannedDate": plannedDate.map((e) => e.toJson()).toList(),
     };
   }
 
@@ -162,7 +166,7 @@ class Booking {
     paymentStatus: "",
     amountPaid: 0,
     paymentMode: "",
-    paymentProof:[],
+    paymentProof: [],
     riderAge: 0,
     parentName: "",
     bookingType: "",

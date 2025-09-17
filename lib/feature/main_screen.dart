@@ -1,3 +1,4 @@
+import 'package:RUTSNRIDES/feature/user/view/user_screen.dart' hide AttendanceScreen;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/core/storage/local_storage.dart';
@@ -21,6 +22,7 @@ class _MainScreenState extends State<MainScreen> {
     // CategoryItem("Follow Up", Icons.update, Colors.orange[700]!),
     CategoryItem("Booking", Icons.book_online, AppTheme.bookingPrimary),
     CategoryItem("Ongoing", Icons.timelapse, AppTheme.ongoingPrimary),
+    CategoryItem("User", Icons.timelapse, AppTheme.followUpSecondary),
   ];
 
   var controller = Get.put(AuthController());
@@ -121,6 +123,8 @@ class CategoryWid extends StatelessWidget {
             Get.to(() => BookingPage());
           } else if (category.title == "Ongoing") {
             Get.to(() => AttendanceScreen());
+          } else if (category.title == "User") {
+            Get.to(() => UserScreen());
           }
         },
         borderRadius: BorderRadius.circular(16.0),
