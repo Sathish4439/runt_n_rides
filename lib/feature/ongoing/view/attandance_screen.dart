@@ -218,51 +218,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       itemBuilder: (context, index) {
                         final attendance = filtered[index];
 
-                        return Dismissible(
-                          key: Key(attendance.id ?? index.toString()),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            color: AppTheme.enquirySecondary,
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: const Icon(
-                              Icons.delete,
-                              color: Colors.white,
-                            ),
-                          ),
-                          confirmDismiss: (direction) async {
-                            bool confirm = false;
-                            await Get.defaultDialog(
-                              title: 'Confirm Delete',
-                              middleText:
-                                  'Are you sure you want to delete this attendance?',
-                              textCancel: 'No',
-                              textConfirm: 'Yes',
-                              buttonColor: AppTheme.enquiryPrimary,
-                              onConfirm: () {
-                                confirm = true;
-                                Get.back();
-                              },
-                              onCancel: () {
-                                confirm = false;
-                              },
-                            );
-                            return confirm;
-                          },
-                          onDismissed: (direction) {
-                            controller.deleteAttendance(attendance.id!);
-                            Get.snackbar(
-                              'Deleted',
-                              'Attendance for ${attendance.riderName} has been deleted.',
-                              snackPosition: SnackPosition.BOTTOM,
-                            );
-                          },
-                          child: buildAttendanceCard(
-                            attendance,
-                            context,
-                            controller,
-                            _selectedDay ?? DateTime.now(),
-                          ),
+                        return buildAttendanceCard(
+                          attendance,
+                          context,
+                          controller,
+                          _selectedDay ?? DateTime.now(),
                         );
                       },
                     ),

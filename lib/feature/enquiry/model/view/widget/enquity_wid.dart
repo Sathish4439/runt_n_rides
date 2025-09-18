@@ -64,26 +64,7 @@ Widget buildAllLeadsList(
     itemCount: allLeads.length,
     itemBuilder: (context, index) {
       final lead = allLeads[index];
-      return Dismissible(
-        key: Key(lead.id.toString()), // make sure each lead has a unique id
-        direction: DismissDirection.endToStart, // swipe from right to left
-        background: Container(
-          color: Colors.red,
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: const Icon(Icons.delete, color: Colors.white),
-        ),
-        onDismissed: (direction) {
-          // Call your delete function
-          onDelete(lead);
-
-          // Optional: show a snackbar
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('${lead.fullName} deleted')));
-        },
-        child: buildLeadCard(lead, context),
-      );
+      return buildLeadCard(lead, context);
     },
   );
 }

@@ -982,48 +982,11 @@ Widget buildAttendanceList(
     itemBuilder: (context, index) {
       final attendance = controller.filteredList[index];
 
-      return Dismissible(
-        key: Key(attendance.id ?? index.toString()), // unique key
-        direction: DismissDirection.endToStart, // swipe from right to left
-        background: Container(
-          color: AppTheme.enquirySecondary,
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: const Icon(Icons.delete, color: Colors.white),
-        ),
-        confirmDismiss: (direction) async {
-          bool confirm = false;
-          await Get.defaultDialog(
-            title: 'Confirm Delete',
-            middleText: 'Are you sure you want to delete this attendance?',
-            textCancel: 'No',
-            textConfirm: 'Yes',
-            buttonColor: AppTheme.enquiryPrimary,
-            onConfirm: () {
-              confirm = true;
-              Get.back();
-            },
-            onCancel: () {
-              confirm = false;
-            },
-          );
-          return confirm;
-        },
-        onDismissed: (direction) {
-          // Remove from the controller's list
-          controller.deleteAttendance(attendance.id!);
-          Get.snackbar(
-            'Deleted',
-            'Attendance for ${attendance.riderName} has been deleted.',
-            snackPosition: SnackPosition.BOTTOM,
-          );
-        },
-        child: buildAttendanceCard(
-          attendance,
-          context,
-          controller,
-          selecteddate,
-        ),
+      return buildAttendanceCard(
+        attendance,
+        context,
+        controller,
+        selecteddate,
       );
     },
   );

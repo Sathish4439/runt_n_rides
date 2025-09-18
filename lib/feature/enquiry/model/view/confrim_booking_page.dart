@@ -36,7 +36,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
   void dispose() {
     // TODO: implement dispose
     super.dispose();
-
     controller.clearBookingForm();
   }
 
