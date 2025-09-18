@@ -97,10 +97,15 @@ class _UserScreenState extends State<UserScreen> {
   void _showAttendanceDetails(Attendance attendance) {
     showModalBottomSheet(
       context: Get.context!,
-      isScrollControlled: true,
-      builder: (context) => AttendanceDetailSheet(
-        attendance: attendance,
-        controller: attendanceController,
+      isScrollControlled: true, // allows fractional height
+      backgroundColor:
+          Colors.transparent, // optional: for rounded corners effect
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.6, // 60% of screen height, adjust as needed
+        child: AttendanceDetailSheet(
+          attendance: attendance,
+          controller: attendanceController,
+        ),
       ),
     );
   }

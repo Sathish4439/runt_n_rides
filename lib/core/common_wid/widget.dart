@@ -1,5 +1,8 @@
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:RUTSNRIDES/core/theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -116,6 +119,125 @@ class CustomTextField extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
+        ),
+      ),
+    );
+  }
+}
+
+class PaymentHistoryBottomSheet extends StatelessWidget {
+  final List<dynamic> payments; // List of payment objects
+  final String Function(DateTime) formatDate; // Date formatter
+  final String fetchUrl; // Base URL for images
+
+  const PaymentHistoryBottomSheet({
+    super.key,
+    required this.payments,
+    required this.formatDate,
+    required this.fetchUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            "Payment History",
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          payments.isEmpty
+              ? const Text("No payments found")
+              : Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: payments.length,
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final p = payments[index];
+                      return ListTile(
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: GestureDetector(
+                            onTap: () {
+                              Get.to(
+                                () => FullScreenImagePage(
+                                  imageUrl: "$fetchUrl/${p.paymentProof}",
+                                ),
+                              );
+                            },
+                            child: Image.network(
+                              "$fetchUrl/${p.paymentProof}",
+                              height: 50,
+                              width: 50,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        title: Text("₹${p.receivedAmount}"),
+                        subtitle: Text("${p.paymentMode} • ${p.paymentStatus}"),
+                        trailing: Text(
+                          p.createdAt != null
+                              ? formatDate(DateTime.parse(p.createdAt))
+                              : "",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+class CommonCachedImage extends StatelessWidget {
+  final String imageUrl;
+  final double width;
+  final double height;
+  final BoxFit fit;
+  final BorderRadius borderRadius;
+
+  const CommonCachedImage({
+    super.key,
+    required this.imageUrl, // only mandatory
+    this.width = 50, // default width
+    this.height = 50, // default height
+    this.fit = BoxFit.cover,
+    this.borderRadius = const BorderRadius.all(Radius.circular(8)),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        width: width,
+        height: height,
+        fit: fit,
+        placeholder: (context, url) => Container(
+          width: width,
+          height: height,
+          color: Colors.grey.shade200,
+          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+        errorWidget: (context, url, error) => Container(
+          width: width,
+          height: height,
+          color: Colors.grey.shade300,
+          child: const Icon(Icons.broken_image, color: Colors.red, size: 20),
         ),
       ),
     );

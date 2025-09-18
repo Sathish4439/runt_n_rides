@@ -140,10 +140,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   ),
                   calendarBuilders: CalendarBuilders(
                     markerBuilder: (context, date, events) {
-                      // ✅ Print number of events for this date
-                      debugPrint(
-                        "Date: ${DateFormat('yyyy-MM-dd').format(date)}, events count: ${events.length}",
-                      );
+                     
 
                       if (events.isNotEmpty) {
                         return Wrap(

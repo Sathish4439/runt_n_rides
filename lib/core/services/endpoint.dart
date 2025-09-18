@@ -1,7 +1,7 @@
 class EndPoints {
   // static final baseUrl = "https://api.rutsnrides.com/api/";
-  static final baseUrl = "https://images-upload.rutsnrides.com/api/";
- // static final baseUrl = "https://c886513a60aa.ngrok-free.app/api/";
+ static final baseUrl = "https://images-upload.rutsnrides.com/api/";
+  //static final baseUrl = "https://5a3898435d74.ngrok-free.app/api/";
 
   //auth
   static final auth = "auth";

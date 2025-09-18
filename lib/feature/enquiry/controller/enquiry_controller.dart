@@ -28,8 +28,6 @@ class EnquiryController extends GetxController {
 
   var paymentProof = "".obs;
 
-  var receivedAmount = TextEditingController();
-
   var bookingStatus = "".obs;
   void addDate(DateTime date) {
     final formatted = DateFormat("yyyy-MM-dd").format(date);
@@ -76,6 +74,7 @@ class EnquiryController extends GetxController {
   var bikeRental = false.obs;
   var gearRental = false.obs;
   var accomdation = false.obs;
+  var instagramProfile = TextEditingController();
 
   Future<void> pickAndUpload(File imageFile) async {
     try {
@@ -109,9 +108,9 @@ class EnquiryController extends GetxController {
   void setBookingData(Booking booking) {
     findandSet(booking.programBooked);
 
-    printData(booking.toJson());
+    printData(booking.totalFee);
+    printData(booking.totalPaid);
 
-    printData(booking.plannedDate);
     riderName.text = booking.riderName;
     age.text = booking.riderAge.toString();
     parentName.text = booking.parentName;
@@ -123,23 +122,20 @@ class EnquiryController extends GetxController {
     height.text = booking.height;
     weight.text = booking.weight;
     shirtSize.text = booking.shirtSize;
+    instagramProfile.text = booking.instagramProfile;
 
     bookingDate.text = booking.bookingDate;
     preferredSessionDate.text = booking.preferredSessionDate;
     totalFee.text = booking.totalFee.toString();
-    amtPaid.text = booking.amountPaid.toString();
+    amtPaid.text = booking.totalPaid.toString();
     medicalCondition.text = booking.medicalCondition; // or adjust field
 
     trainingSlot.value = booking.trainingSlot;
     sessionType.value = booking.sessionType;
-    paymentStatus.value = booking.paymentStatus;
-    paymentMode.value = booking.paymentMode;
+
     selectedBookingType.value = booking.bookingType;
     headSize.text = booking.headSize;
 
-    paymentProof.value = booking.paymentProof.isNotEmpty
-        ? booking.paymentProof.first
-        : "";
     plannedData.value = booking.plannedDate;
 
     bikeRental.value = booking.bikeRental.toLowerCase() == 'yes';
@@ -372,53 +368,12 @@ class EnquiryController extends GetxController {
     try {
       loadSubmit.value = true;
 
-      // Booking body
-      var bookingJson = {
-        "timestamp": bookingData.timestamp,
-        "fullNameOfRider": bookingData.riderName,
-        "phoneNumber": bookingData.phone,
-        "programBooked": bookingData.programBooked,
-        "programDetails": bookingData.programDetails,
-        "bookingDate": bookingData.bookingDate,
-        "sessionDate": bookingData.preferredSessionDate,
-        "trainingSlot": bookingData.trainingSlot,
-        "sessionType": bookingData.sessionType,
-        "bikeRental": bookingData.bikeRental,
-        "gearRental": bookingData.gearRental,
-        "totalProgramFee": bookingData.totalFee,
-        "paymentStatus": bookingData.paymentStatus,
-        "amountPaid": bookingData.amountPaid,
-        "paymentMode": bookingData.paymentMode,
-        "paymentProof": bookingData.paymentProof,
-        "ageOfRider": bookingData.riderAge,
-        "parentName": bookingData.parentName,
-        "bookingType": bookingData.bookingType,
-        "receivedAmount": bookingData.receivedAmount,
-        "height": bookingData.height,
-        "weight": bookingData.weight,
-        "headSize": bookingData.headSize,
-        "pantSize": bookingData.pantSize,
-        "shirtSize": bookingData.shirtSize,
-        "enquiryId": enquiryId,
-        "plannedDate": bookingData.plannedDate,
-        "medicalCondition": medicalCondition.text,
-        "accomdation": accomdation.value == true ? "Yes" : "No",
-        "bookingId": bookingData.id,
-      };
-
-      printData(bookingJson);
-
-      var bookingRes = await api.post(
-        EndPoints.createBooking,
-        data: bookingJson,
-      );
+      final data = bookingData.toJson();
+      data.remove("_id");
+      var bookingRes = await api.post(EndPoints.createBooking, data: data);
 
       if (bookingRes.data['success']) {
-        printData("✅ Booking created: ${bookingRes.data}");
-
-        // After booking, create attendance
         await createAttendance(attendance, bookingRes.data['bookingId']);
-
         showSuccess(bookingRes.data['message']);
         Get.back();
       } else {
@@ -457,7 +412,7 @@ class EnquiryController extends GetxController {
       );
 
       if (res.data['success']) {
-        printData("✅ Attendance created: ${res.data}");
+        showSuccess(res.data['message']);
       } else {
         showError("Attendance failed: ${res.data['message']}");
       }
@@ -467,6 +422,7 @@ class EnquiryController extends GetxController {
       loadSubmit.value = false;
       clearBookingForm();
       Get.back();
+      loadEnquirey();
     }
   }
 
@@ -579,8 +535,8 @@ class EnquiryController extends GetxController {
     // Reset checkboxes
     bikeRental.value = false;
     gearRental.value = false;
-    receivedAmount.clear();
-    paymentProof.close();
+
+    paymentProof.value = "";
     // Reset loading
     isLoading.value = false;
     pantSize.clear();
@@ -588,6 +544,7 @@ class EnquiryController extends GetxController {
     shirtSize.clear();
     height.clear();
     weight.clear();
+    instagramProfile.clear();
   }
 
   // ✅ Dispose controllers when widget/controller is destroyed
@@ -664,5 +621,31 @@ class EnquiryController extends GetxController {
     } catch (e) {
       printData(e);
     }
+  }
+
+  Future<void> updatePaymentDetails(String? id, PaymentDetails payment) async {
+    try {
+      var res = await api.put(
+        "${EndPoints.booking}/$id/${EndPoints.payment}",
+        data: payment.toJson(),
+      );
+
+      if (res.data['success']) {
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
+      }
+    } catch (e) {
+      printData(e);
+    } finally {
+      clearPaymentDate();
+    }
+  }
+
+  void clearPaymentDate() {
+    paymentProof.value = "";
+    amtPaid.clear();
+    paymentStatus.value = "";
+    paymentMode.value = "";
   }
 }

@@ -6,7 +6,7 @@ import 'package:RUTSNRIDES/core/theme/app_theme.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/auth/controller/auth_controller.dart';
 import 'package:RUTSNRIDES/feature/booking/view/booking_page.dart';
-import 'package:RUTSNRIDES/feature/enquiry/model/view/enquiry_page.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/enquiry_page.dart';
 import 'package:RUTSNRIDES/feature/ongoing/view/attandance_screen.dart';
 
 class MainScreen extends StatefulWidget {

@@ -1,4 +1,5 @@
-import 'package:RUTSNRIDES/feature/enquiry/model/view/confrim_booking_page.dart';
+import 'package:RUTSNRIDES/core/utils/utils.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/confrim_booking_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
@@ -6,7 +7,7 @@ import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/feature/booking/controller/booking_controller.dart';
 import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
-import 'package:RUTSNRIDES/feature/enquiry/model/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
 // import your Booking model
 
 class BookingBottomSheet extends StatelessWidget {
@@ -115,17 +116,16 @@ Booking bookingFromLead(Lead lead) {
     sessionType: "",
     bikeRental: lead.bikeRental,
     gearRental: lead.gearRental,
+    totalPaid: 0,
     totalFee: 0.0, // not in Lead → default
-    paymentStatus: "",
-    amountPaid: 0.0, // not in Lead → default
-    paymentMode: '', // not in Lead
-    paymentProof: [], // not in Lead
+    // not in Lead
     riderAge: lead.age,
     parentName: '', // not in Lead
     bookingType: "",
-    receivedAmount: 0.0, // not in Lead
+    // not in Lead
     bookingStatus: '', // not in Lead
-    //trainingStarted: '', // not in Lead
+    payment: [],
+    instagramProfile: "",
   );
 }
 
@@ -228,13 +228,13 @@ Widget buildStatsSummary(BookingController controller) {
     }).length;
 
     final totalRevenue = bookings.fold(0.0, (sum, b) {
-      return sum + b.amountPaid;
+      return sum + b.totalFee;
     });
 
     final outstanding = bookings.fold(0.0, (sum, b) {
-      final due = b.totalFee - b.receivedAmount;
+      final due = b.totalFee - b.totalPaid;
       print(
-        "⚠️ Outstanding for Booking ID: ${b.id} = ${b.totalFee} - ${b.receivedAmount} = $due",
+        "⚠️ Outstanding for Booking ID: ${b.id} = ${b.totalFee} - ${b.totalPaid} = $due",
       );
       return sum + due;
     });
@@ -296,22 +296,31 @@ Widget buildStatItem(String label, String value, Color color) {
 
 // Improved booking status detection
 String getBookingStatus(Booking booking) {
-  final status = booking.bookingStatus.toLowerCase();
-  final paymentStatus = booking.paymentStatus.toLowerCase();
-  final amountPaid = booking.amountPaid;
-  final totalFee = booking.totalFee;
+  try {
+    final status = booking.bookingStatus.toLowerCase();
+    final amountPaid = booking.totalPaid;
+    final totalFee = booking.totalFee;
 
-  if (status.contains('confirm') || status == 'confirmed') {
-    return 'CONFIRMED';
-  } else if (paymentStatus.contains('paid') || amountPaid >= totalFee) {
-    return 'PAID';
-  } else if (paymentStatus.contains('partial') || amountPaid > 0) {
-    return 'PENDING';
-  } else if (paymentStatus.contains('not paid') || amountPaid == 0) {
-    return 'PENDING';
+    // Safe access to last payment
+    final paymentStatus = booking.payment.isNotEmpty
+        ? booking.payment.last.paymentStatus.toLowerCase()
+        : '';
+
+    if (status.contains('confirm') || status == 'confirmed') {
+      return 'CONFIRMED';
+    } else if (paymentStatus.contains('paid') || amountPaid >= totalFee) {
+      return 'PAID';
+    } else if (paymentStatus.contains('partial') || amountPaid > 0) {
+      return 'PENDING';
+    } else if (paymentStatus.contains('not paid') || amountPaid == 0) {
+      return 'PENDING';
+    }
+
+    return status.toUpperCase();
+  } catch (e) {
+    printData(e);
+    return 'UNKNOWN';
   }
-
-  return status.toUpperCase();
 }
 
 List<Booking> filterAndSortBookings(
@@ -364,7 +373,7 @@ Widget buildBookingCard(
   BookingController controller,
 ) {
   final status = getBookingStatus(booking);
-  final outstanding = booking.totalFee - booking.receivedAmount;
+  final outstanding = booking.totalFee - booking.totalPaid;
   final bookingDate = parseDate(booking.bookingDate);
   final sessionDate = parseDate(booking.preferredSessionDate);
 
@@ -398,7 +407,7 @@ Widget buildBookingCard(
                         MaterialPageRoute(
                           builder: (_) => FullScreenImagePage(
                             imageUrl:
-                                "${EndPoints.fetch}/${booking.paymentProof.first}",
+                                "${EndPoints.fetch}/${booking.payment.last.paymentProof}",
                           ),
                         ),
                       );
@@ -504,7 +513,7 @@ Widget buildBookingCard(
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    'Paid: ${controller.currencyFormat.format(booking.amountPaid)}',
+                    'Paid: ${controller.currencyFormat.format(booking.totalPaid)}',
                     style: TextStyle(
                       color: Colors.green[700],
                       fontWeight: FontWeight.bold,
@@ -535,9 +544,9 @@ Widget buildBookingCard(
               //   ],
               // ),
               const SizedBox(height: 4),
-              if (booking.paymentStatus.isNotEmpty)
+              if (booking.payment.isNotEmpty)
                 Text(
-                  'Payment Status: ${booking.paymentStatus}',
+                  'Payment Status: ${booking.payment.last.paymentStatus}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -654,10 +663,10 @@ void addPaymentToBooking(
             'Total Fee: ${controller.currencyFormat.format(booking.totalFee)}',
           ),
           Text(
-            'Amount Paid: ${controller.currencyFormat.format(booking.receivedAmount)}',
+            'Amount Paid: ${controller.currencyFormat.format(booking.totalPaid)}',
           ),
           Text(
-            'Outstanding: ${controller.currencyFormat.format(booking.totalFee - booking.receivedAmount)}',
+            'Outstanding: ${controller.currencyFormat.format(booking.totalFee - booking.totalPaid)}',
           ),
           const SizedBox(height: 16),
           TextFormField(

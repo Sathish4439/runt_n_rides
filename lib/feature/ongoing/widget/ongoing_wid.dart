@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
 import 'package:RUTSNRIDES/core/services/api_service.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
-import 'package:RUTSNRIDES/feature/enquiry/model/view/confrim_booking_page.dart';
-import 'package:RUTSNRIDES/feature/enquiry/model/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/confrim_booking_page.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -347,7 +347,7 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                                             final booking =
                                                 widget.attendance.bookingData!;
                                             if (booking.totalFee !=
-                                                booking.amountPaid) {
+                                                booking.totalPaid) {
                                               showError(
                                                 "Cannot mark the training as completed. Please verify that the full payment has been received and payment proof has been uploaded before completing the session.",
                                               );
@@ -525,7 +525,7 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                       ),
                       _infoText(
                         "Total Amount Paid",
-                        widget.attendance.bookingData!.amountPaid?.toString() ??
+                        widget.attendance.bookingData!.totalPaid?.toString() ??
                             "0",
                       ),
                       const Divider(),
@@ -982,12 +982,7 @@ Widget buildAttendanceList(
     itemBuilder: (context, index) {
       final attendance = controller.filteredList[index];
 
-      return buildAttendanceCard(
-        attendance,
-        context,
-        controller,
-        selecteddate,
-      );
+      return buildAttendanceCard(attendance, context, controller, selecteddate);
     },
   );
 }

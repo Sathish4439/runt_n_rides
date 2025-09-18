@@ -1,14 +1,16 @@
 import 'dart:ffi' hide Size;
 
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
+import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/program_model.dart';
+import 'package:RUTSNRIDES/feature/ongoing/widget/ongoing_wid.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
 import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
-import 'package:RUTSNRIDES/feature/enquiry/model/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 
 class ConfirmBookingPage extends StatefulWidget {
@@ -57,19 +59,14 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
   }
 
   bool validateData() {
-    final age = int.tryParse(controller.age.text.trim()) ?? 0;
-    final totalFee = int.tryParse(controller.totalFee.text.trim()) ?? 0;
-    final amtPaid = int.tryParse(controller.amtPaid.text.trim()) ?? 0;
+    var age = int.tryParse(controller.age.text.trim()) ?? 0;
+    printData(controller.totalFee.text.trim());
+    var totalFee = double.tryParse(controller.totalFee.text.trim()) ?? 0.0;
 
-    printData("$age $totalFee $amtPaid");
     // Common fee validations
-    if (totalFee == 0) {
+    if (totalFee == 0.0) {
+      printData(totalFee);
       showError("Total fee is required");
-      return false;
-    }
-
-    if (amtPaid == 0) {
-      showError("Amount paid is required");
       return false;
     }
 
@@ -79,7 +76,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
         showError("Parent's name is required for students under 12");
         return false;
       }
-      // Add more child-only validations here if needed
     }
 
     return true; // ✅ Passed all checks
@@ -160,6 +156,8 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                   controller.trainingSlot,
                 );
               }),
+              _buildSectionHeader("Planned Dates"),
+              MultiDatePickerWidget(),
 
               Obx(
                 () => _buildDropdown(
@@ -180,18 +178,68 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
               SizedBox(height: 24),
 
               // Payment Section
-              _buildSectionHeader("Payment Information"),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildSectionHeader("Payment Information"),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () async {
+                          if (controller.amtPaid.text.isNotEmpty &&
+                              controller.paymentStatus.value.isNotEmpty &&
+                              controller.paymentProof.value.isNotEmpty &&
+                              controller.selectedBookingType.value.isNotEmpty) {
+                            PaymentDetails payment = PaymentDetails(
+                              receivedAmount:
+                                  double.tryParse(
+                                    controller.amtPaid.text.trim(),
+                                  ) ??
+                                  0.0,
+                              paymentStatus: controller.paymentStatus.value,
+                              paymentMode: controller.paymentMode.value,
+                              paymentProof: controller.paymentProof.value,
+                            );
+
+                            await controller.updatePaymentDetails(
+                              widget.bookingData!.id,
+                              payment,
+                            );
+                          }
+                        },
+                        icon: Icon(Icons.done),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          final payments = widget.bookingData?.payment ?? [];
+
+                          Get.bottomSheet(
+                            PaymentHistoryBottomSheet(
+                              payments: payments,
+                              formatDate: (date) =>
+                                  "${date.day}-${date.month}-${date.year}",
+                              fetchUrl: EndPoints.fetch,
+                            ),
+                          );
+                        },
+                        icon: Icon(Icons.history),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
               _buildTextField(
                 "Total Fee (₹)",
                 controller.totalFee,
                 keyboard: TextInputType.number,
                 isRequired: true,
+                readOnly: widget.attendance != null ? true : false,
               ),
               _buildTextField(
                 "Advance Paid Amount (₹)",
                 controller.amtPaid,
                 keyboard: TextInputType.number,
-                isRequired: true,
               ),
               // _buildTextField(
               //   "Received Amount  (₹)",
@@ -215,12 +263,9 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 controller.selectedBookingType,
               ),
 
-              ImagePickerWidget(),
+              ImagePickerWidget(controller: controller),
               SizedBox(height: 20),
 
-              _buildSectionHeader("Planned Dates"),
-
-              MultiDatePickerWidget(),
               _buildSectionHeader("Customer details"),
               SizedBox(height: 20),
               _buildTextField(
@@ -248,6 +293,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 controller.shirtSize,
                 keyboard: TextInputType.number,
               ),
+              _buildTextField("Instagram Profile", controller.instagramProfile),
 
               Visibility(
                 visible: widget.from == "booking",
@@ -258,12 +304,22 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         widget.bookingData != null) {
                       printData(controller.plannedData);
                       final booking = Booking(
+                        payment: [
+                          PaymentDetails(
+                            receivedAmount: double.parse(
+                              controller.amtPaid.text,
+                            ),
+                            paymentStatus: controller.paymentStatus.value,
+                            paymentMode: controller.paymentMode.value,
+                            paymentProof: controller.paymentProof.value,
+                          ),
+                        ],
                         id: "",
                         accomdation: controller.accomdation.value == true
                             ? "yes"
                             : "no",
                         plannedDate: controller.plannedData,
-                        paymentProof: [controller.paymentProof.value],
+
                         timestamp: DateTime.now().millisecondsSinceEpoch
                             .toString(),
                         riderName: controller.riderName.text,
@@ -280,19 +336,20 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         pantSize: controller.pantSize.text,
                         shirtSize: controller.shirtSize.text,
                         height: controller.height.text,
+                        instagramProfile: controller.instagramProfile.text,
                         weight: controller.weight.text,
                         bikeRental: controller.bikeRental.value ? "Yes" : "No",
                         gearRental: controller.gearRental.value ? "Yes" : "No",
                         totalFee:
                             double.tryParse(controller.totalFee.text) ?? 0.0,
-                        paymentStatus: controller.paymentStatus.value,
-                        amountPaid:
+
+                        totalPaid:
                             double.tryParse(controller.amtPaid.text) ?? 0.0,
-                        paymentMode: controller.paymentMode.value,
+
                         riderAge: int.tryParse(controller.age.text) ?? 0,
                         parentName: controller.parentName.text,
                         bookingType: controller.selectedBookingType.value,
-                        receivedAmount: 0,
+
                         bookingStatus: controller.bookingStatus.value,
                       );
 
@@ -314,15 +371,22 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                               _formKey.currentState!.validate()) &&
                           widget.attendance != null &&
                           widget.bookingData != null) {
-                        // Create booking data and submit
-                        printData(controller.plannedData);
                         final booking = Booking(
                           id: "",
                           accomdation: controller.accomdation.value == true
                               ? "yes"
                               : "no",
                           plannedDate: controller.plannedData,
-                          paymentProof: [controller.paymentProof.value],
+                          payment: [
+                            PaymentDetails(
+                              receivedAmount: double.parse(
+                                controller.amtPaid.text,
+                              ),
+                              paymentStatus: controller.paymentStatus.value,
+                              paymentMode: controller.paymentMode.value,
+                              paymentProof: controller.paymentProof.value,
+                            ),
+                          ],
                           timestamp: DateTime.now().millisecondsSinceEpoch
                               .toString(),
                           riderName: controller.riderName.text,
@@ -340,6 +404,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                           pantSize: controller.pantSize.text,
                           shirtSize: controller.shirtSize.text,
                           height: controller.height.text,
+                          instagramProfile: controller.instagramProfile.text,
                           weight: controller.weight.text,
                           bikeRental: controller.bikeRental.value
                               ? "Yes"
@@ -349,14 +414,14 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                               : "No",
                           totalFee:
                               double.tryParse(controller.totalFee.text) ?? 0.0,
-                          paymentStatus: controller.paymentStatus.value,
-                          amountPaid:
+
+                          totalPaid:
                               double.tryParse(controller.amtPaid.text) ?? 0.0,
-                          paymentMode: controller.paymentMode.value,
+
                           riderAge: int.tryParse(controller.age.text) ?? 0,
                           parentName: controller.parentName.text,
                           bookingType: controller.selectedBookingType.value,
-                          receivedAmount: 0,
+
                           bookingStatus: controller.bookingStatus.value,
                         );
 
@@ -453,10 +518,23 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                         controller.accomdation.value == true
                                         ? "yes"
                                         : "no",
-                                    plannedDate: controller.plannedData,
-                                    paymentProof: [
-                                      controller.paymentProof.value,
+                                    payment: [
+                                      PaymentDetails(
+                                        receivedAmount:
+                                            double.tryParse(
+                                              controller.amtPaid.text,
+                                            ) ??
+                                            0.0,
+                                        paymentStatus:
+                                            controller.paymentStatus.value,
+                                        paymentMode:
+                                            controller.paymentMode.value,
+                                        paymentProof:
+                                            controller.paymentProof.value,
+                                      ),
                                     ],
+                                    plannedDate: controller.plannedData,
+
                                     timestamp: DateTime.now()
                                         .millisecondsSinceEpoch
                                         .toString(),
@@ -478,6 +556,9 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                     shirtSize: controller.shirtSize.text,
                                     height: controller.height.text,
                                     weight: controller.weight.text,
+
+                                    instagramProfile:
+                                        controller.instagramProfile.text,
                                     bikeRental: controller.bikeRental.value
                                         ? "Yes"
                                         : "No",
@@ -489,20 +570,19 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                           controller.totalFee.text,
                                         ) ??
                                         0.0,
-                                    paymentStatus:
-                                        controller.paymentStatus.value,
-                                    amountPaid:
+
+                                    totalPaid:
                                         double.tryParse(
                                           controller.amtPaid.text,
                                         ) ??
                                         0.0,
-                                    paymentMode: controller.paymentMode.value,
+
                                     riderAge:
                                         int.tryParse(controller.age.text) ?? 0,
                                     parentName: controller.parentName.text,
                                     bookingType:
                                         controller.selectedBookingType.value,
-                                    receivedAmount: 0,
+
                                     bookingStatus:
                                         controller.bookingStatus.value,
                                   );
@@ -640,11 +720,13 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
     TextInputType keyboard = TextInputType.text,
     bool isRequired = false,
     int maxLines = 1,
+    bool readOnly = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: ctrl,
+        readOnly: readOnly,
         keyboardType: keyboard,
         maxLines: maxLines,
         decoration: InputDecoration(

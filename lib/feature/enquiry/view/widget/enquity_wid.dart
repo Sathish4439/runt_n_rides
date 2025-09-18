@@ -16,7 +16,7 @@ import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
-import 'package:RUTSNRIDES/feature/enquiry/model/view/confrim_booking_page.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/confrim_booking_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Widget buildLeadsForSelectedDay(Map<DateTime, List<Lead>> events) {
@@ -74,7 +74,11 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
   return Card(
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     elevation: 2,
-    color: Colors.white,
+    color: lead.status == "booked"
+        ? Colors.green.shade50
+        : lead.status.toLowerCase() == "follow up"
+        ? Colors.orange.shade50
+        : Colors.white,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     child: Padding(
       padding: const EdgeInsets.all(16),
@@ -130,6 +134,19 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
                         Expanded(
                           child: Text(
                             lead.programInterest,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Icon(Icons.person, size: 14),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Age : " + lead.age.toString(),
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontSize: 14),
                           ),
@@ -549,35 +566,9 @@ void addNewLead(BuildContext context) async {
 }
 
 class ImagePickerWidget extends StatelessWidget {
-  final controller = Get.find<EnquiryController>();
-  final dio = Dio();
+  final EnquiryController controller;
 
-  ImagePickerWidget({super.key});
-
-  Future<Uint8List?> _fetchProtectedImage(String fileName, String token) async {
-    try {
-      final response = await dio.get(
-        "${EndPoints.fetch}/$fileName",
-        options: Options(
-          responseType: ResponseType.bytes,
-          headers: {"Authorization": "Bearer $token"},
-        ),
-      );
-      return Uint8List.fromList(response.data);
-    } catch (e, s) {
-      debugPrint("❌ Image fetch failed: $e\n$s");
-      return null;
-    }
-  }
-
-  Future<String?> _getToken() async {
-    try {
-      return await SecureStorageService.readData(CosntString.token);
-    } catch (e, s) {
-      debugPrint("❌ Token fetch failed: $e\n$s");
-      return null;
-    }
-  }
+  ImagePickerWidget({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -595,75 +586,16 @@ class ImagePickerWidget extends StatelessWidget {
                 color: Colors.grey[300],
                 child: const Icon(Icons.image, size: 50),
               );
+            } else {
+              return Container(
+                height: 100,
+                width: 100,
+                color: Colors.grey[300],
+                child: Image.network("${EndPoints.fetch}/$proof"),
+              );
             }
 
             // ✅ Image uploaded → fetch it safely
-            return FutureBuilder<String?>(
-              future: _getToken(),
-              builder: (context, tokenSnapshot) {
-                if (tokenSnapshot.connectionState == ConnectionState.waiting) {
-                  return const SizedBox(
-                    height: 100,
-                    width: 100,
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                }
-
-                if (tokenSnapshot.hasError) {
-                  debugPrint("❌ Token error: ${tokenSnapshot.error}");
-                  return Container(
-                    height: 100,
-                    width: 100,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.error, size: 50),
-                  );
-                }
-
-                final token = tokenSnapshot.data ?? '';
-                if (token.isEmpty) {
-                  return Container(
-                    height: 100,
-                    width: 100,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.lock, size: 50),
-                  );
-                }
-
-                return FutureBuilder<Uint8List?>(
-                  future: _fetchProtectedImage(proof, token),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SizedBox(
-                        height: 100,
-                        width: 100,
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    } else if (snapshot.hasError) {
-                      debugPrint("❌ Image fetch error: ${snapshot.error}");
-                      return Container(
-                        height: 100,
-                        width: 100,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.broken_image, size: 50),
-                      );
-                    } else if (snapshot.hasData && snapshot.data != null) {
-                      return Image.memory(
-                        snapshot.data!,
-                        height: 100,
-                        fit: BoxFit.contain,
-                      );
-                    } else {
-                      return Container(
-                        height: 100,
-                        width: 100,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.broken_image, size: 50),
-                      );
-                    }
-                  },
-                );
-              },
-            );
           }),
           const SizedBox(width: 20),
           CommonButton(

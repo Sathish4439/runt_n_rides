@@ -1,4 +1,7 @@
+import 'package:RUTSNRIDES/core/common_wid/widget.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
+import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
 import 'package:RUTSNRIDES/feature/ongoing/controller/attandance_controller.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/lap_model.dart';
 import 'package:RUTSNRIDES/feature/ongoing/widget/ongoing_wid.dart';
@@ -24,9 +27,7 @@ class AttendanceDetailSheet extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      child: ListView(
         children: [
           Center(
             child: Container(
@@ -60,7 +61,7 @@ class AttendanceDetailSheet extends StatelessWidget {
 
           Text('Payment Proof', style: TextStyle(fontWeight: FontWeight.bold)),
 
-          _buildProffWid(),
+          _buildProffWid(attendance.bookingData!.payment),
 
           if (attendance.completedDates.isNotEmpty) ...[
             const Text(
@@ -87,8 +88,15 @@ class AttendanceDetailSheet extends StatelessWidget {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(2, 2),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,9 +125,11 @@ class AttendanceDetailSheet extends StatelessWidget {
 
             // ✅ Horizontal scroll
             SizedBox(
-              height: 100, // fixed height for horizontal list
+              // fixed height for horizontal list
               child: ListView.separated(
-                scrollDirection: Axis.horizontal,
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                scrollDirection: Axis.vertical,
                 itemCount: controller.lapsHistory.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 12),
                 itemBuilder: (context, index) {
@@ -140,10 +150,31 @@ class AttendanceDetailSheet extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: completed.lapTimes.map((lap) {
-                          return Chip(
-                            label: Text(lap.toString()),
-                            backgroundColor: Colors.green.shade50,
-                            labelStyle: const TextStyle(color: Colors.black),
+                          return Container(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white, // use same color as Chip
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey.shade300),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 4,
+                                  offset: const Offset(2, 2),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              lap.toString(),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           );
                         }).toList(),
                       ),
@@ -171,16 +202,87 @@ class AttendanceDetailSheet extends StatelessWidget {
     return ans;
   }
 
-  Widget _buildProffWid() {
+  Widget _buildProffWid(List<PaymentDetails> payments) {
+    if (payments.isEmpty) {
+      return const Text("No payment proofs found");
+    }
+
     return SizedBox(
-      height: 40,
-      child: ListView.builder(
-        itemCount: attendance.bookingData!.paymentProof.length,
-        scrollDirection: Axis.horizontal,
+      height: 80,
+      child: ListView.separated(
         shrinkWrap: true,
+        scrollDirection: Axis.horizontal,
+        itemCount: payments.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
-          var photo = attendance.bookingData!.paymentProof[index];
-          return Image.network("${EndPoints.fetch}/${photo}");
+          final p = payments[index];
+          return GestureDetector(
+            onTap: () {
+              Get.to(
+                () => FullScreenImagePage(
+                  imageUrl: "${EndPoints.fetch}/${p.paymentProof}",
+                ),
+              );
+            },
+            child: Container(
+              width: 180,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(2, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CommonCachedImage(
+                      imageUrl: "${EndPoints.fetch}/${p.paymentProof}",
+                      height: 60,
+                      width: 60,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "₹${p.receivedAmount}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          "${p.paymentMode} • ${p.paymentStatus}",
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          p.createAt != null
+                              ? formatDate(DateTime.parse(p.createAt!))
+                              : "",
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         },
       ),
     );
