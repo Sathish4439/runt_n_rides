@@ -33,12 +33,18 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
   final _formKey = GlobalKey<FormState>();
 
   @override
+  void dispose() {
+    // TODO: implement dispose
+    super.dispose();
+
+    controller.clearBookingForm();
+  }
+
   void initState() {
     super.initState(); // ✅ always call super first
 
     try {
       // reset submit state
-      controller.loadSubmit(false);
 
       // handle enquiry or booking data
       if (widget.enquirydata != null) {

@@ -1,3 +1,4 @@
+import 'package:RUTSNRIDES/feature/ongoing/controller/attandance_controller.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 import 'package:RUTSNRIDES/feature/user/controller/user_controller.dart';
 import 'package:RUTSNRIDES/feature/user/view/widget/attendance_card_wid.dart';
@@ -12,6 +13,7 @@ class UserScreen extends StatefulWidget {
 
 class _UserScreenState extends State<UserScreen> {
   var controller = Get.put(UserController());
+  var attendanceController = Get.put(AttendanceController());
 
   @override
   void initState() {
@@ -24,7 +26,7 @@ class _UserScreenState extends State<UserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Attendance Management'),
+        title: Text('User management'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
@@ -56,7 +58,12 @@ class _UserScreenState extends State<UserScreen> {
                     final attendance = controller.filteredList[index];
                     return AttendanceCard(
                       attendance: attendance,
-                      onTap: () => _showAttendanceDetails(attendance),
+                      onTap: () async {
+                        await attendanceController.fetchLapHistory(
+                          attendance.id ?? "",
+                        );
+                        _showAttendanceDetails(attendance);
+                      },
                     );
                   },
                 ),
@@ -91,7 +98,10 @@ class _UserScreenState extends State<UserScreen> {
     showModalBottomSheet(
       context: Get.context!,
       isScrollControlled: true,
-      builder: (context) => AttendanceDetailSheet(attendance: attendance),
+      builder: (context) => AttendanceDetailSheet(
+        attendance: attendance,
+        controller: attendanceController,
+      ),
     );
   }
 }

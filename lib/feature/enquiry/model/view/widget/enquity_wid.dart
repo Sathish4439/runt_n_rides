@@ -135,7 +135,7 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
                           Icon(Icons.call, size: 14),
                           SizedBox(width: 10),
                           Text(
-                            lead.whatsapp,
+                            "${lead.whatsapp} (${lead.contactAvailability})",
                             style: const TextStyle(fontSize: 14),
                           ),
                         ],
@@ -203,10 +203,8 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
                     ? AppTheme.bookingSecondary
                     : AppTheme.enquirySecondary,
                 onTap: () async {
-                  print(lead.toJson());
                   Get.to(
-                    () =>
-                        ConfirmBookingPage(enquirydata: lead, from: "enquiry"),
+                    () => ConfirmBookingPage(enquirydata: lead, from: "lead"),
                   );
                 },
               ),

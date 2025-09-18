@@ -1050,7 +1050,7 @@ Widget buildAttendanceCard(
   Attendance attendance,
   BuildContext context,
   AttendanceController controller,
-  DateTime selectedDate,
+  DateTime? selectedDate, // ✅ nullable now
 ) {
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1108,11 +1108,17 @@ Widget buildAttendanceCard(
                               'Session: ${attendance.sessionsCompleted}/${attendance.totalSessions}',
                             ),
 
-                            // ✅ Planned session for selected date
-                            Text(
-                              'Planned: ${GetSessionByDate(selectedDate, attendance.bookingData!.plannedDate)}',
-                              style: const TextStyle(color: Colors.green),
-                            ),
+                            // ✅ Planned session for selected date (safe check)
+                            if (selectedDate != null)
+                              Text(
+                                'Planned: ${GetSessionByDate(selectedDate, attendance.bookingData?.plannedDate ?? [])}',
+                                style: const TextStyle(color: Colors.green),
+                              )
+                            else
+                              const Text(
+                                'No planned date',
+                                style: TextStyle(color: Colors.red),
+                              ),
                           ],
                         ),
                       ),

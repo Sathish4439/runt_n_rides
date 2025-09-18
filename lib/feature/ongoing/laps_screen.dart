@@ -267,20 +267,6 @@ class _LapsScreenState extends State<LapsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              textAlign: TextAlign.end,
-                              "Total Rides : ${controller.lapsHistory.length}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
                         Text(
                           "Ride ${ride.rideNumber} • ${ride.createdAt.toLocal().toString().split('.')[0]}",
                           style: const TextStyle(

@@ -42,17 +42,39 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   /// ✅ Collect planned dates for all users
-  Map<DateTime, List<String>> groupPlannedDates() {
+  /// Group planned dates for calendar (duplicates allowed)
+  Map<DateTime, List<String>> groupPlannedDatesForCalendar() {
     final map = <DateTime, List<String>>{};
+    final seen = <String, Set<String>>{};
+    // key = dayKey, value = set of bookingData.id already added for that day
+
     for (var att in controller.attendanceList) {
+      final bookingId = att.bookingData?.id;
+      if (bookingId == null) continue; // skip null ids
+
       for (var p in att.bookingData?.plannedDate ?? []) {
         final parsed = DateTime.tryParse(p.date);
-        if (parsed != null) {
-          final dayKey = DateTime(parsed.year, parsed.month, parsed.day);
-          map.putIfAbsent(dayKey, () => []).add(att.riderName ?? "Unknown");
+        if (parsed == null) continue;
+
+        final dayKey = DateTime(parsed.year, parsed.month, parsed.day);
+
+        // Initialize set for the day
+        seen.putIfAbsent(dayKey.toIso8601String(), () => <String>{});
+
+        // Only add if this bookingId hasn't been added for this day yet
+        if (!seen[dayKey.toIso8601String()]!.contains(bookingId)) {
+          seen[dayKey.toIso8601String()]!.add(bookingId);
+
+          // Add rider name to map
+          map.update(
+            dayKey,
+            (list) => [...list, att.riderName ?? "Unknown"],
+            ifAbsent: () => [att.riderName ?? "Unknown"],
+          );
         }
       }
     }
+
     return map;
   }
 
@@ -80,14 +102,14 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           return buildEmptyState();
         }
 
-        final plannedEvents = groupPlannedDates();
+        final plannedEvents = groupPlannedDatesForCalendar();
         final filtered = _selectedDay != null
             ? filterByDate(_selectedDay!)
             : controller.attendanceList;
 
         return Column(
           children: [
-            // ✅ Calendar with green dots
+            // Calendar
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Card(
@@ -118,6 +140,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   ),
                   calendarBuilders: CalendarBuilders(
                     markerBuilder: (context, date, events) {
+                      // ✅ Print number of events for this date
+                      debugPrint(
+                        "Date: ${DateFormat('yyyy-MM-dd').format(date)}, events count: ${events.length}",
+                      );
+
                       if (events.isNotEmpty) {
                         return Wrap(
                           alignment: WrapAlignment.center,
@@ -129,7 +156,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               width: 6,
                               height: 6,
                               decoration: const BoxDecoration(
-                                color: Colors.green, // ✅ Planned date marker
+                                color: Colors.green,
                                 shape: BoxShape.circle,
                               ),
                             );
@@ -139,13 +166,37 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       return null;
                     },
                   ),
+
+                  // calendarBuilders: CalendarBuilders(
+                  //   markerBuilder: (context, date, events) {
+                  //     if (events.isNotEmpty) {
+                  //       return Wrap(
+                  //         alignment: WrapAlignment.center,
+                  //         children: events.map((_) {
+                  //           return Container(
+                  //             margin: const EdgeInsets.symmetric(
+                  //               horizontal: 0.5,
+                  //             ),
+                  //             width: 6,
+                  //             height: 6,
+                  //             decoration: const BoxDecoration(
+                  //               color: Colors.green,
+                  //               shape: BoxShape.circle,
+                  //             ),
+                  //           );
+                  //         }).toList(),
+                  //       );
+                  //     }
+                  //     return null;
+                  //   },
+                  // ),
                 ),
               ),
             ),
 
             const SizedBox(height: 10),
 
-            // ✅ Selected Date Header
+            // Selected date header
             if (_selectedDay != null)
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -158,7 +209,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               ),
 
-            // ✅ Attendance List
+            // Attendance List
             Expanded(
               child: filtered.isEmpty
                   ? const Center(child: Text("No attendances planned"))
@@ -168,11 +219,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         final attendance = filtered[index];
 
                         return Dismissible(
-                          key: Key(
-                            attendance.id ?? index.toString(),
-                          ), // unique key
-                          direction: DismissDirection
-                              .endToStart, // swipe from right to left
+                          key: Key(attendance.id ?? index.toString()),
+                          direction: DismissDirection.endToStart,
                           background: Container(
                             color: AppTheme.enquirySecondary,
                             alignment: Alignment.centerRight,
@@ -202,7 +250,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             return confirm;
                           },
                           onDismissed: (direction) {
-                            // Remove from the controller's list
                             controller.deleteAttendance(attendance.id!);
                             Get.snackbar(
                               'Deleted',

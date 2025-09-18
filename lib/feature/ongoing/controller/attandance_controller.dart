@@ -96,31 +96,42 @@ class AttendanceController extends GetxController {
   }
 
   /// Fetch all attendance
-  Future<void> fetchAttendance() async {
-    try {
-      isLoading(true);
-      attendanceList.clear();
+ Future<void> fetchAttendance() async {
+  try {
+    isLoading(true);
+    attendanceList.clear();
 
-      final res = await api.get(EndPoints.getAllAttendance);
+    final res = await api.get(EndPoints.getAllAttendance);
 
-      if (res.data['success']) {
-        var li = (res.data['sessions'] as List)
-            .map((e) => Attendance.fromJson(e))
-            .toList();
+    if (res.data['success']) {
+      var li = (res.data['sessions'] as List)
+          .map((e) => Attendance.fromJson(e))
+          .toList();
 
-        if (li.isNotEmpty) {
-          attendanceList.value = li;
-          filteredList.value = li;
-        }
+      if (li.isNotEmpty) {
+        // ✅ remove duplicates by bookingData.id (safe null check)
+        final seen = <String>{};
+        final uniqueList = li.where((a) {
+          final key = a.bookingData?.id; // safe access
+          if (key == null || seen.contains(key)) {
+            return false; // skip if null or duplicate
+          }
+          seen.add(key);
+          return true;
+        }).toList();
 
-        printData("attendanceList ${attendanceList.length}");
+        attendanceList.value = uniqueList;
+        filteredList.value = uniqueList;
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch attendance: $e');
-    } finally {
-      isLoading(false);
+
+      printData("attendanceList ${attendanceList.length}");
     }
+  } catch (e) {
+    Get.snackbar('Error', 'Failed to fetch attendance: $e');
+  } finally {
+    isLoading(false);
   }
+}
 
   Future<void> addlaps(String id) async {
     try {
@@ -225,7 +236,7 @@ class AttendanceController extends GetxController {
         "sessionDuration": updatedAttendance.sessionDuration,
         "sessionCompletion": updatedAttendance.sessionCompletion,
         "sessionDate": updatedAttendance.sessionDate,
-        "totalSessions":updatedAttendance.totalSessions
+        "totalSessions": updatedAttendance.totalSessions,
       };
 
       printData(bodyJson);
@@ -289,43 +300,46 @@ class AttendanceController extends GetxController {
     }
   }
 
- Future<void> pickAndUploadPaymentProof(File imageFile, String bookingId) async {
-  try {
-    // 1️⃣ Upload file first
-    final uploadResponse = await api.postFile(
-      EndPoints.upload,
-      fileKey: "paymentProof",
-      filePath: imageFile.path,
-    );
-
-    if (uploadResponse.statusCode != 200 || uploadResponse.data['filename'] == null) {
-      Get.snackbar("Error", "File upload failed");
-      return;
-    }
-
-    final uploadedFileName = uploadResponse.data['filename'];
-
-    // 2️⃣ Append new payment proof to existing ones
-    final updateResponse = await api.put(
-      "${EndPoints.booking}/$bookingId/${EndPoints.paymentProff}",
-      data: {
-        "paymentProof": [uploadedFileName], // backend will append it
-      },
-    );
-
-    if (updateResponse.statusCode == 200) {
-      Get.snackbar("Success", "Payment proof updated successfully");
-    } else {
-      Get.snackbar(
-        "Error",
-        updateResponse.data['message'] ?? "Failed to update payment proof",
+  Future<void> pickAndUploadPaymentProof(
+    File imageFile,
+    String bookingId,
+  ) async {
+    try {
+      // 1️⃣ Upload file first
+      final uploadResponse = await api.postFile(
+        EndPoints.upload,
+        fileKey: "paymentProof",
+        filePath: imageFile.path,
       );
-    }
-  } catch (e) {
-    Get.snackbar("Error", e.toString());
-  }
-}
 
+      if (uploadResponse.statusCode != 200 ||
+          uploadResponse.data['filename'] == null) {
+        Get.snackbar("Error", "File upload failed");
+        return;
+      }
+
+      final uploadedFileName = uploadResponse.data['filename'];
+
+      // 2️⃣ Append new payment proof to existing ones
+      final updateResponse = await api.put(
+        "${EndPoints.booking}/$bookingId/${EndPoints.paymentProff}",
+        data: {
+          "paymentProof": [uploadedFileName], // backend will append it
+        },
+      );
+
+      if (updateResponse.statusCode == 200) {
+        Get.snackbar("Success", "Payment proof updated successfully");
+      } else {
+        Get.snackbar(
+          "Error",
+          updateResponse.data['message'] ?? "Failed to update payment proof",
+        );
+      }
+    } catch (e) {
+      Get.snackbar("Error", e.toString());
+    }
+  }
 
   /// Set laps history and sort by createdAt descending
   void setLapsHistory(List<Lap> data) {

@@ -1,3 +1,6 @@
+import 'package:RUTSNRIDES/core/services/endpoint.dart';
+import 'package:RUTSNRIDES/feature/ongoing/controller/attandance_controller.dart';
+import 'package:RUTSNRIDES/feature/ongoing/model/lap_model.dart';
 import 'package:RUTSNRIDES/feature/ongoing/widget/ongoing_wid.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,9 +8,13 @@ import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 
 class AttendanceDetailSheet extends StatelessWidget {
   final Attendance attendance;
+  final AttendanceController controller;
 
-  const AttendanceDetailSheet({Key? key, required this.attendance})
-    : super(key: key);
+  const AttendanceDetailSheet({
+    Key? key,
+    required this.attendance,
+    required this.controller,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -51,25 +58,130 @@ class AttendanceDetailSheet extends StatelessWidget {
             '${attendance.sessionsCompleted} sessions completed',
           ),
 
+          Text('Payment Proof', style: TextStyle(fontWeight: FontWeight.bold)),
+
+          _buildProffWid(),
+
           if (attendance.completedDates.isNotEmpty) ...[
-            // SizedBox(height: 16),
-            Text(
+            const Text(
               'Completed Dates:',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            ...attendance.completedDates
-                .map(
-                  (date) => ListTile(
-                    title: Text(formatDate(DateTime.parse(date.date))),
-                    subtitle: Text('Duration: ${date.duration}'),
-                  ),
-                )
-                .toList(),
-          ],
+            const SizedBox(height: 8),
 
+            // ✅ Horizontal scroll
+            SizedBox(
+              height: 60, // fixed height for horizontal list
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: attendance.completedDates.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final completed = attendance.completedDates[index];
+                  final parsed = DateTime.tryParse(completed.date);
+                  final formatted = parsed != null
+                      ? formatDate(parsed)
+                      : "Invalid date";
+
+                  return Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          formatted,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text('Duration: ${completed.duration}'),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+          SizedBox(height: 20),
+          //   _buildActionButtons(),
+          if (controller.lapsHistory.isNotEmpty) ...[
+            const Text(
+              'Laps History',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            // ✅ Horizontal scroll
+            SizedBox(
+              height: 100, // fixed height for horizontal list
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: controller.lapsHistory.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final completed = controller.lapsHistory[index];
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Date : ${formatDate(completed.createdAt)}'),
+                          SizedBox(width: 30),
+                          Text('Total Duration : ${completed.totalDuration}'),
+                        ],
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: completed.lapTimes.map((lap) {
+                          return Chip(
+                            label: Text(lap.toString()),
+                            backgroundColor: Colors.green.shade50,
+                            labelStyle: const TextStyle(color: Colors.black),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
           SizedBox(height: 20),
           //   _buildActionButtons(),
         ],
+      ),
+    );
+  }
+
+  String ListToString(List<String> li) {
+    var ans = "";
+
+    for (var i in li) {
+      ans += i;
+      ans += "\n";
+    }
+
+    return ans;
+  }
+
+  Widget _buildProffWid() {
+    return SizedBox(
+      height: 40,
+      child: ListView.builder(
+        itemCount: attendance.bookingData!.paymentProof.length,
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: true,
+        itemBuilder: (context, index) {
+          var photo = attendance.bookingData!.paymentProof[index];
+          return Image.network("${EndPoints.fetch}/${photo}");
+        },
       ),
     );
   }

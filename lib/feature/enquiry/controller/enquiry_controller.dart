@@ -42,7 +42,7 @@ class EnquiryController extends GetxController {
   }
 
   void removeDate(String date) {
-    plannedData.remove(date);
+    plannedData.removeWhere((d) => d.date == date);
   }
 
   // Text controllers
@@ -79,7 +79,7 @@ class EnquiryController extends GetxController {
 
   Future<void> pickAndUpload(File imageFile) async {
     try {
-      final response = await api.postFile(
+      var response = await api.postFile(
         EndPoints.upload,
         fileKey: "paymentProof",
         filePath: imageFile.path,
@@ -87,11 +87,13 @@ class EnquiryController extends GetxController {
 
       if (response.statusCode == 200) {
         paymentProof.value = response.data['filename'];
+        printData("paymentProof.value ${paymentProof.value}");
       } else {
         Get.snackbar("Error", "Upload failed");
       }
     } catch (e) {
       Get.snackbar("Error", e.toString());
+      printData(e);
     }
   }
 
@@ -183,6 +185,13 @@ class EnquiryController extends GetxController {
 
   //radio button data
   final programs = [
+    TrainingProgram(
+      id: 1,
+      name: "Ruts Start",
+      durations: ["Morning (9AM–12PM)", "Afternoon (2PM–5PM)", "Full Day"],
+      sessionTypes: ["Private"],
+      title: "I am a Beginner",
+    ),
     TrainingProgram(
       id: 1,
       name: "Ruts Start",
@@ -579,8 +588,6 @@ class EnquiryController extends GetxController {
     shirtSize.clear();
     height.clear();
     weight.clear();
-
-    print("✅ Booking form cleared!");
   }
 
   // ✅ Dispose controllers when widget/controller is destroyed
