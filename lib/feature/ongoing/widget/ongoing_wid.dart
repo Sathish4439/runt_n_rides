@@ -308,10 +308,12 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                                         _editedAttendance.attendanceStatus,
                                         _attendanceOptions,
                                         (value) => setState(() {
-                                          _editedAttendance = _editedAttendance
-                                              .copyWith(
-                                                attendanceStatus: value!,
-                                              );
+                                          if (value != null) {
+                                            _editedAttendance =
+                                                _editedAttendance.copyWith(
+                                                  attendanceStatus: value,
+                                                );
+                                          }
 
                                           _editedAttendance = _editedAttendance
                                               .copyWith(
@@ -326,10 +328,12 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                                         _editedAttendance.sessionDuration,
                                         _durationOptions,
                                         (value) => setState(() {
-                                          _editedAttendance = _editedAttendance
-                                              .copyWith(
-                                                sessionDuration: value!,
-                                              );
+                                          if (value != null) {
+                                            _editedAttendance =
+                                                _editedAttendance.copyWith(
+                                                  sessionDuration: value,
+                                                );
+                                          }
                                         }),
                                       ),
                                       const SizedBox(height: 15),
