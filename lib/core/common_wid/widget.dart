@@ -1,3 +1,4 @@
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
 import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -126,7 +127,7 @@ class CustomTextField extends StatelessWidget {
 }
 
 class PaymentHistoryBottomSheet extends StatelessWidget {
-  final List<dynamic> payments; // List of payment objects
+  final List<PaymentDetails> payments; // List of payment objects
   final String Function(DateTime) formatDate; // Date formatter
   final String fetchUrl; // Base URL for images
 
@@ -161,7 +162,7 @@ class PaymentHistoryBottomSheet extends StatelessWidget {
                     itemCount: payments.length,
                     separatorBuilder: (_, __) => const Divider(),
                     itemBuilder: (context, index) {
-                      final p = payments[index];
+                      var p = payments[index];
                       return ListTile(
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(50),
@@ -184,8 +185,8 @@ class PaymentHistoryBottomSheet extends StatelessWidget {
                         title: Text("₹${p.receivedAmount}"),
                         subtitle: Text("${p.paymentMode} • ${p.paymentStatus}"),
                         trailing: Text(
-                          p.createdAt != null
-                              ? formatDate(DateTime.parse(p.createdAt))
+                          p.createAt != null
+                              ? formatDate(DateTime.parse(p.createAt!))
                               : "",
                           style: const TextStyle(
                             fontSize: 12,

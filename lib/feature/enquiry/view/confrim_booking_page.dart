@@ -1,10 +1,7 @@
-import 'dart:ffi' hide Size;
-
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/program_model.dart';
-import 'package:RUTSNRIDES/feature/ongoing/widget/ongoing_wid.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
@@ -60,12 +57,10 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
 
   bool validateData() {
     var age = int.tryParse(controller.age.text.trim()) ?? 0;
-    printData(controller.totalFee.text.trim());
     var totalFee = double.tryParse(controller.totalFee.text.trim()) ?? 0.0;
 
     // Common fee validations
     if (totalFee == 0.0) {
-      printData(totalFee);
       showError("Total fee is required");
       return false;
     }
@@ -152,7 +147,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 final program = controller.selectedProgram.value;
                 return _buildDropdown(
                   "Training Slot",
-                  program.durations ?? [],
+                  program.durations,
                   controller.trainingSlot,
                 );
               }),
@@ -182,92 +177,125 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildSectionHeader("Payment Information"),
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () async {
-                          if (controller.amtPaid.text.isNotEmpty &&
-                              controller.paymentStatus.value.isNotEmpty &&
-                              controller.paymentProof.value.isNotEmpty &&
-                              controller.selectedBookingType.value.isNotEmpty) {
-                            PaymentDetails payment = PaymentDetails(
-                              receivedAmount:
-                                  double.tryParse(
-                                    controller.amtPaid.text.trim(),
-                                  ) ??
-                                  0.0,
-                              paymentStatus: controller.paymentStatus.value,
-                              paymentMode: controller.paymentMode.value,
-                              paymentProof: controller.paymentProof.value,
-                            );
+                  Visibility(
+                    visible: widget.bookingData?.payment.isNotEmpty ?? false,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: () async {
+                            // Check each field individually and collect empty fields
+                            List<String> emptyFields = [];
 
-                            await controller.updatePaymentDetails(
-                              widget.bookingData!.id,
-                              payment,
-                            );
-                          }
-                        },
-                        icon: Icon(Icons.done),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          final payments = widget.bookingData?.payment ?? [];
+                            if (controller.amtPaid.text.isEmpty) {
+                              emptyFields.add("Amount Paid");
+                            }
+                            if (controller.paymentStatus.value.isEmpty) {
+                              emptyFields.add("Payment Status");
+                            }
+                            if (controller.paymentProof.value.isEmpty) {
+                              emptyFields.add("Payment Proof");
+                            }
+                            if (controller.paymentMode.value.isEmpty) {
+                              emptyFields.add("Payment Mode");
+                            }
 
-                          Get.bottomSheet(
-                            PaymentHistoryBottomSheet(
-                              payments: payments,
-                              formatDate: (date) =>
-                                  "${date.day}-${date.month}-${date.year}",
-                              fetchUrl: EndPoints.fetch,
-                            ),
-                          );
-                        },
-                        icon: Icon(Icons.history),
-                      ),
-                    ],
+                            // Print empty fields if any
+                            if (emptyFields.isNotEmpty) {
+                              showError(
+                                "These fields are empty: ${emptyFields.join(", ")}",
+                              );
+                            }
+
+                            if (controller.amtPaid.text.isNotEmpty &&
+                                controller.paymentStatus.value.isNotEmpty &&
+                                controller.paymentProof.value.isNotEmpty &&
+                                controller.paymentMode.value.isNotEmpty) {
+                              PaymentDetails payment = PaymentDetails(
+                                receivedAmount:
+                                    double.tryParse(
+                                      controller.amtPaid.text.trim(),
+                                    ) ??
+                                    0.0,
+                                paymentStatus: controller.paymentStatus.value,
+                                paymentMode: controller.paymentMode.value,
+                                paymentProof: controller.paymentProof.value,
+                              );
+
+                              if (widget.bookingData != null) {
+                                await controller.updatePaymentDetails(
+                                  widget.bookingData!.id,
+                                  payment,
+                                );
+                                Get.back();
+                              }
+                            }
+                          },
+                          icon: Icon(Icons.done),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            final payments = widget.bookingData?.payment ?? [];
+
+                            Get.bottomSheet(
+                              PaymentHistoryBottomSheet(
+                                payments: payments,
+                                formatDate: (date) =>
+                                    "${date.day}-${date.month}-${date.year}",
+                                fetchUrl: EndPoints.fetch,
+                              ),
+                            );
+                          },
+                          icon: Icon(Icons.history),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
               SizedBox(height: 10),
-              _buildTextField(
-                "Total Fee (₹)",
-                controller.totalFee,
-                keyboard: TextInputType.number,
-                isRequired: true,
-                readOnly: widget.attendance != null ? true : false,
+              Column(
+                children: [
+                  _buildTextField(
+                    "Total Fee (₹)",
+                    controller.totalFee,
+                    keyboard: TextInputType.number,
+                    isRequired: true,
+                    readOnly: widget.attendance != null ? true : false,
+                  ),
+                  _buildTextField(
+                    "Advance Paid Amount (₹)",
+                    controller.amtPaid,
+                    keyboard: TextInputType.number,
+                  ),
+                  // _buildTextField(
+                  //   "Received Amount  (₹)",
+                  //   controller.receivedAmount,
+                  //   keyboard: TextInputType.number,
+                  //   isRequired: true,
+                  // ),
+                  _buildDropdown(
+                    "Payment Status",
+                    controller.paymentStatuses,
+                    controller.paymentStatus,
+                  ),
+                  _buildDropdown(
+                    "Payment Mode",
+                    controller.paymentMethod,
+                    controller.paymentMode,
+                  ),
+
+                  ImagePickerWidget(controller: controller),
+                ],
               ),
-              _buildTextField(
-                "Advance Paid Amount (₹)",
-                controller.amtPaid,
-                keyboard: TextInputType.number,
-              ),
-              // _buildTextField(
-              //   "Received Amount  (₹)",
-              //   controller.receivedAmount,
-              //   keyboard: TextInputType.number,
-              //   isRequired: true,
-              // ),
-              _buildDropdown(
-                "Payment Status",
-                controller.paymentStatuses,
-                controller.paymentStatus,
-              ),
-              _buildDropdown(
-                "Payment Mode",
-                controller.paymentMethod,
-                controller.paymentMode,
-              ),
+              SizedBox(height: 20),
               _buildDropdown(
                 "Booking Type",
                 controller.bookingType,
                 controller.selectedBookingType,
               ),
 
-              ImagePickerWidget(controller: controller),
-              SizedBox(height: 20),
-
               _buildSectionHeader("Customer details"),
-              SizedBox(height: 20),
+
               _buildTextField(
                 "Height",
                 controller.height,
@@ -302,7 +330,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                   onTap: () async {
                     if (widget.from == "booking" &&
                         widget.bookingData != null) {
-                      printData(controller.plannedData);
                       final booking = Booking(
                         payment: [
                           PaymentDetails(
@@ -325,7 +352,8 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         riderName: controller.riderName.text,
                         medicalCondition: controller.medicalCondition.text,
                         phone: controller.phone.text,
-                        programBooked: controller.selectedProgram.value.title!,
+                        programBooked:
+                            controller.selectedProgram.value.title ?? "",
                         programDetails: controller.programDetails.text,
                         bookingDate: controller.bookingDate.text,
                         preferredSessionDate:
@@ -353,10 +381,13 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         bookingStatus: controller.bookingStatus.value,
                       );
 
-                      await controller.updateBooking(
-                        widget.bookingData!.id,
-                        booking,
-                      );
+                      if (widget.bookingData != null) {
+                        await controller.updateBooking(
+                          widget.bookingData!.id,
+                          booking,
+                        );
+                        Get.back();
+                      }
                     }
                   },
                 ),
@@ -393,7 +424,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                           medicalCondition: controller.medicalCondition.text,
                           phone: controller.phone.text,
                           programBooked:
-                              controller.selectedProgram.value.title!,
+                              controller.selectedProgram.value.title ?? "",
                           programDetails: controller.programDetails.text,
                           bookingDate: controller.bookingDate.text,
                           preferredSessionDate:
@@ -425,10 +456,13 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                           bookingStatus: controller.bookingStatus.value,
                         );
 
-                        await controller.updateBooking(
-                          widget.bookingData!.id,
-                          booking,
-                        );
+                        if (widget.bookingData != null) {
+                          await controller.updateBooking(
+                            widget.bookingData!.id,
+                            booking,
+                          );
+                          Get.back();
+                        }
 
                         final attendance = Attendance(
                           id: widget.attendance!.id,
@@ -467,6 +501,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                             widget.attendance!.id,
                             attendance,
                           );
+                          Get.back();
                         }
                       }
                     }
@@ -501,7 +536,8 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         overlayColor: MaterialStateProperty.resolveWith<Color>((
                           Set<MaterialState> states,
                         ) {
-                          return Colors.blue[800]!.withOpacity(0.1);
+                          return Colors.blue[800]?.withOpacity(0.1) ??
+                              Colors.blue.withOpacity(0.1);
                         }),
                       ),
                       onPressed: controller.loadSubmit.value
@@ -511,7 +547,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                 if ((_formKey.currentState != null &&
                                     _formKey.currentState!.validate())) {
                                   // Create booking data and submit
-                                  printData(controller.plannedData);
                                   final booking = Booking(
                                     id: "",
                                     accomdation:
@@ -543,7 +578,11 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                         controller.medicalCondition.text,
                                     phone: controller.phone.text,
                                     programBooked:
-                                        controller.selectedProgram.value.title!,
+                                        controller
+                                            .selectedProgram
+                                            .value
+                                            .title ??
+                                        "",
                                     programDetails:
                                         controller.programDetails.text,
                                     bookingDate: controller.bookingDate.text,
@@ -616,16 +655,19 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                       attendance,
                                       widget.enquirydata!.id,
                                     );
-                                  } else {
-                                    print("test");
-                                  }
+
+                                    Get.back();
+                                  } else {}
                                 }
                               }
                             },
                       child: Ink(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.blue[700]!, Colors.blue[500]!],
+                            colors: [
+                              Colors.blue[700] ?? Colors.blue,
+                              Colors.blue[500] ?? Colors.blue,
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -776,7 +818,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: Colors.grey[300] ?? Colors.grey),
             ),
             child: Column(
               children: controller.programs
@@ -788,8 +830,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                       onChanged: (val) {
                         if (val != null) {
                           controller.setSelectedProgram(val);
-
-                          printData(val.toJson());
                         }
                       },
                       contentPadding: EdgeInsets.symmetric(horizontal: 16),
@@ -866,26 +906,29 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey[300]!),
+              border: Border.all(color: Colors.grey[300] ?? Colors.grey),
             ),
             child: Column(
               children: [
                 CheckboxListTile(
                   title: Text("Bike Rental"),
                   value: controller.bikeRental.value,
-                  onChanged: (val) => controller.bikeRental.value = val!,
+                  onChanged: (val) =>
+                      controller.bikeRental.value = val ?? false,
                   contentPadding: EdgeInsets.symmetric(horizontal: 16),
                 ),
                 CheckboxListTile(
                   title: Text("Gear Rental"),
                   value: controller.gearRental.value,
-                  onChanged: (val) => controller.gearRental.value = val!,
+                  onChanged: (val) =>
+                      controller.gearRental.value = val ?? false,
                   contentPadding: EdgeInsets.symmetric(horizontal: 16),
                 ),
                 CheckboxListTile(
                   title: Text("Accomdation"),
                   value: controller.accomdation.value,
-                  onChanged: (val) => controller.accomdation.value = val!,
+                  onChanged: (val) =>
+                      controller.accomdation.value = val ?? false,
                   contentPadding: EdgeInsets.symmetric(horizontal: 16),
                 ),
               ],

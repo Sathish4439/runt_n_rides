@@ -86,17 +86,28 @@ class _LapsScreenState extends State<LapsScreen> {
             child: CircularProgressIndicator(
               value: progress,
               strokeWidth: 10,
-              color: Colors.blue,
+              color: controller.isRunning.value ? Colors.blue : Colors.grey,
               backgroundColor: Colors.grey.shade300,
             ),
           ),
-          Text(
-            controller.formattedTime,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1,
-            ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                controller.formattedTime,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                  color: controller.isRunning.value ? Colors.blue : Colors.grey,
+                ),
+              ),
+              if (controller.laps.isNotEmpty)
+                Text(
+                  '${controller.laps.length} Lap${controller.laps.length == 1 ? '' : 's'}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+            ],
           ),
         ],
       );
@@ -105,13 +116,18 @@ class _LapsScreenState extends State<LapsScreen> {
 
   Widget _buildControlButtons() {
     return Obx(
-      () => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      () => Wrap(
+        spacing: 8.0,
+        runSpacing: 8.0,
+        alignment: WrapAlignment.center,
         children: [
           // Reset
           ElevatedButton(
             onPressed: controller.resetStopwatch,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              minimumSize: Size(80, 40),
+            ),
             child: const Text('Reset'),
           ),
 
@@ -126,6 +142,7 @@ class _LapsScreenState extends State<LapsScreen> {
               backgroundColor: controller.isRunning.value
                   ? Colors.orange
                   : Colors.green,
+              minimumSize: Size(80, 40),
             ),
             child: Text(controller.isRunning.value ? 'Pause' : 'Start'),
           ),
@@ -133,7 +150,10 @@ class _LapsScreenState extends State<LapsScreen> {
           // Lap
           ElevatedButton(
             onPressed: controller.isRunning.value ? controller.recordLap : null,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple,
+              minimumSize: Size(80, 40),
+            ),
             child: const Text('Lap'),
           ),
 
@@ -142,7 +162,10 @@ class _LapsScreenState extends State<LapsScreen> {
             onPressed: controller.isRunning.value
                 ? controller.stopStopwatch
                 : null,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              minimumSize: Size(80, 40),
+            ),
             child: const Text('Stop'),
           ),
         ],
@@ -179,7 +202,12 @@ class _LapsScreenState extends State<LapsScreen> {
 
         GestureDetector(
           onTap: () async {
-            await controller.addlaps(widget.attendance.id ?? "");
+            try {
+              await controller.addlaps(widget.attendance.id ?? "");
+            } catch (e) {
+              // Error handling is already done in the controller
+              print('Error saving laps: $e');
+            }
           },
           child: Container(
             height: Get.height * 0.050,

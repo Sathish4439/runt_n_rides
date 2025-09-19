@@ -338,19 +338,22 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                                         _editedAttendance.sessionCompletion,
                                         _completionOptions,
                                         (value) => setState(() {
-                                          _editedAttendance = _editedAttendance
-                                              .copyWith(
-                                                sessionCompletion: value!,
-                                              );
+                                          if (value != null) {
+                                            _editedAttendance =
+                                                _editedAttendance.copyWith(
+                                                  sessionCompletion: value,
+                                                );
 
-                                          if (value == "Completed") {
-                                            final booking =
-                                                widget.attendance.bookingData!;
-                                            if (booking.totalFee !=
-                                                booking.totalPaid) {
-                                              showError(
-                                                "Cannot mark the training as completed. Please verify that the full payment has been received and payment proof has been uploaded before completing the session.",
-                                              );
+                                            if (value == "Completed") {
+                                              final booking =
+                                                  widget.attendance.bookingData;
+                                              if (booking != null &&
+                                                  booking.totalFee !=
+                                                      booking.totalPaid) {
+                                                showError(
+                                                  "Cannot mark the training as completed. Please verify that the full payment has been received and payment proof has been uploaded before completing the session.",
+                                                );
+                                              }
                                             }
                                           }
                                         }),
@@ -378,7 +381,9 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                     },
                     calendarBuilders: CalendarBuilders(
                       defaultBuilder: (context, day, focusedDay) {
-                        printData(widget.attendance.bookingData!.toJson());
+                        if (widget.attendance.bookingData != null) {
+                          printData(widget.attendance.bookingData!.toJson());
+                        }
                         final plannedDates =
                             widget.attendance.bookingData?.plannedDate
                                 .map((d) => DateTime.tryParse(d.date))
@@ -518,37 +523,42 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _infoText(
-                        "Total Fees",
-                        widget.attendance.bookingData!.totalFee?.toString() ??
-                            "0",
-                      ),
-                      _infoText(
-                        "Total Amount Paid",
-                        widget.attendance.bookingData!.totalPaid?.toString() ??
-                            "0",
-                      ),
-                      const Divider(),
-                      _infoText(
-                        "Head Size",
-                        "${widget.attendance.bookingData!.headSize ?? "-"} CM",
-                      ),
-                      _infoText(
-                        "Pant Size",
-                        "${widget.attendance.bookingData!.pantSize ?? "-"} CM",
-                      ),
-                      _infoText(
-                        "Height",
-                        "${widget.attendance.bookingData!.height ?? "-"} CM",
-                      ),
-                      _infoText(
-                        "Weight",
-                        "${widget.attendance.bookingData!.weight ?? "-"} KG",
-                      ),
-                      _infoText(
-                        "Shirt Size",
-                        widget.attendance.bookingData!.shirtSize ?? "-",
-                      ),
+                      if (widget.attendance.bookingData != null) ...[
+                        _infoText(
+                          "Total Fees",
+                          widget.attendance.bookingData!.totalFee?.toString() ??
+                              "0",
+                        ),
+                        _infoText(
+                          "Total Amount Paid",
+                          widget.attendance.bookingData!.totalPaid
+                                  ?.toString() ??
+                              "0",
+                        ),
+                        const Divider(),
+                        _infoText(
+                          "Head Size",
+                          "${widget.attendance.bookingData!.headSize ?? "-"} CM",
+                        ),
+                        _infoText(
+                          "Pant Size",
+                          "${widget.attendance.bookingData!.pantSize ?? "-"} CM",
+                        ),
+                        _infoText(
+                          "Height",
+                          "${widget.attendance.bookingData!.height ?? "-"} CM",
+                        ),
+                        _infoText(
+                          "Weight",
+                          "${widget.attendance.bookingData!.weight ?? "-"} KG",
+                        ),
+                        _infoText(
+                          "Shirt Size",
+                          widget.attendance.bookingData!.shirtSize ?? "-",
+                        ),
+                      ] else ...[
+                        _infoText("Booking Data", "Not available"),
+                      ],
                     ],
                   ),
                 const SizedBox(height: 10),
@@ -992,7 +1002,7 @@ String GetSessionByDate(DateTime date, List<CompletedDate> li) {
     // Parse string to DateTime
     final parsed = DateTime.tryParse(i.date);
     if (parsed != null) {
-      print("Checking planned date: $parsed"); // ✅ debug print
+      // ✅ debug print
 
       if (parsed.year == date.year &&
           parsed.month == date.month &&
@@ -1165,7 +1175,13 @@ Color getStatusColor(String status) {
 }
 
 String formatDate(DateTime date) {
-  return '${date.day}/${date.month}/${date.year}';
+  printData(date);
+  try {
+    return '${date.day}/${date.month}/${date.year}';
+  } catch (e) {
+    print("Error formatting date: $e");
+    return '';
+  }
 }
 
 Future<void> selectDate(

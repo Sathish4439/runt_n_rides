@@ -2,14 +2,11 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:get/get.dart';
-import 'package:RUTSNRIDES/core/constant/const_data.dart';
 import 'package:RUTSNRIDES/core/services/api_service.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
-import 'package:RUTSNRIDES/core/theme/app_theme.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/lap_model.dart';
-import 'package:table_calendar/table_calendar.dart';
 
 class AttendanceController extends GetxController {
   // Observables
@@ -49,14 +46,6 @@ class AttendanceController extends GetxController {
     final hours = twoDigits(elapsedTime.value.inHours);
     final minutes = twoDigits(elapsedTime.value.inMinutes.remainder(60));
     final seconds = twoDigits(elapsedTime.value.inSeconds.remainder(60));
-    final milliseconds = twoDigits(
-      elapsedTime.value.inMilliseconds.remainder(1000),
-      3,
-    );
-    final microseconds = twoDigits(
-      elapsedTime.value.inMicroseconds.remainder(1000),
-      3,
-    );
 
     return "${hours}:${minutes}:${seconds}";
   }
@@ -95,43 +84,52 @@ class AttendanceController extends GetxController {
     laps.clear();
   }
 
-  /// Fetch all attendance
- Future<void> fetchAttendance() async {
-  try {
-    isLoading(true);
-    attendanceList.clear();
-
-    final res = await api.get(EndPoints.getAllAttendance);
-
-    if (res.data['success']) {
-      var li = (res.data['sessions'] as List)
-          .map((e) => Attendance.fromJson(e))
-          .toList();
-
-      if (li.isNotEmpty) {
-        // ✅ remove duplicates by bookingData.id (safe null check)
-        final seen = <String>{};
-        final uniqueList = li.where((a) {
-          final key = a.bookingData?.id; // safe access
-          if (key == null || seen.contains(key)) {
-            return false; // skip if null or duplicate
-          }
-          seen.add(key);
-          return true;
-        }).toList();
-
-        attendanceList.value = uniqueList;
-        filteredList.value = uniqueList;
-      }
-
-      printData("attendanceList ${attendanceList.length}");
-    }
-  } catch (e) {
-    Get.snackbar('Error', 'Failed to fetch attendance: $e');
-  } finally {
-    isLoading(false);
+  /// Clear all stopwatch data after successful save
+  void clearStopwatchData() {
+    _timer?.cancel();
+    elapsedTime.value = Duration.zero;
+    isRunning.value = false;
+    showSaveOption(false);
+    laps.clear();
   }
-}
+
+  /// Fetch all attendance
+  Future<void> fetchAttendance() async {
+    try {
+      isLoading(true);
+      attendanceList.clear();
+
+      final res = await api.get(EndPoints.getAllAttendance);
+
+      if (res.data['success']) {
+        var li = (res.data['sessions'] as List)
+            .map((e) => Attendance.fromJson(e))
+            .toList();
+
+        if (li.isNotEmpty) {
+          // ✅ remove duplicates by bookingData.id (safe null check)
+          final seen = <String>{};
+          final uniqueList = li.where((a) {
+            final key = a.bookingData?.id; // safe access
+            if (key == null || seen.contains(key)) {
+              return false; // skip if null or duplicate
+            }
+            seen.add(key);
+            return true;
+          }).toList();
+
+          attendanceList.value = uniqueList;
+          filteredList.value = uniqueList;
+        }
+
+        printData("attendanceList ${attendanceList.length}");
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to fetch attendance: $e');
+    } finally {
+      isLoading(false);
+    }
+  }
 
   Future<void> addlaps(String id) async {
     try {
@@ -144,6 +142,9 @@ class AttendanceController extends GetxController {
 
       if (res.data['success']) {
         showSuccess(res.data['message']);
+
+        fetchAttendance();
+        clearStopwatchData();
       } else {
         showError(res.data['message']);
       }
@@ -151,6 +152,8 @@ class AttendanceController extends GetxController {
       printData(e);
     } finally {
       fetchLapHistory(id);
+      Get.back();
+      showSaveOption(false);
     }
   }
 

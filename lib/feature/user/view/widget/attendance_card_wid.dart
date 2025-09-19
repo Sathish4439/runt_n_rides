@@ -35,9 +35,6 @@ class AttendanceCard extends StatelessWidget {
           children: [
             Text('Phone: ${attendance.phoneNumber}'),
             Text('Program: ${attendance.programBooked}'),
-            Text(
-              'Session: ${formatDate(DateTime.parse(attendance.sessionDate))}',
-            ),
           ],
         ),
         trailing: _buildStatusIndicator(attendance.sessionCompletion),

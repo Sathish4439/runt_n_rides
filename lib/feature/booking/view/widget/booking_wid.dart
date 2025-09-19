@@ -399,9 +399,8 @@ Widget buildBookingCard(
               ),
               Row(
                 children: [
-                  CommonButton(
-                    text: "View Proff",
-                    onTap: () {
+                  IconButton(
+                    onPressed: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -412,11 +411,10 @@ Widget buildBookingCard(
                         ),
                       );
                     },
+                    icon: Icon(Icons.image),
                   ),
-                  CommonButton(
-                    text: "Edit Details",
-                    onTap: () async {
-                      print(booking.toJson());
+                  IconButton(
+                    onPressed: () {
                       Get.to(
                         ConfirmBookingPage(
                           bookingData: booking,
@@ -424,6 +422,7 @@ Widget buildBookingCard(
                         ),
                       );
                     },
+                    icon: Icon(Icons.edit),
                   ),
                 ],
               ),
