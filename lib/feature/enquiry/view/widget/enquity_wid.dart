@@ -1,19 +1,14 @@
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:RUTSNRIDES/core/storage/local_storage.dart';
 import 'package:RUTSNRIDES/core/theme/app_theme.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
-import 'package:RUTSNRIDES/core/constant/const_data.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
 
-import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/lead_model.dart';
 import 'package:RUTSNRIDES/feature/enquiry/view/confrim_booking_page.dart';
@@ -162,6 +157,7 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
+                              maxLines: 20,
                               lead.followUpNotes,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontSize: 14),
@@ -196,9 +192,11 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               CommonButton(
-                text: "Book",
+                text: lead.status.toLowerCase() == "booked" ? "Booked" : "Book",
                 color: lead.status.toLowerCase() == "booked"
                     ? AppTheme.bookingSecondary
+                    : lead.status.toLowerCase() == "follow up"
+                    ? AppTheme.followUpSecondary
                     : AppTheme.enquirySecondary,
                 onTap: () async {
                   Get.to(
@@ -210,6 +208,12 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
               CommonButton(
                 isLoading: controller.followUpLoading.value,
                 text: "Follow Up",
+
+                color: lead.status.toLowerCase() == "booked"
+                    ? AppTheme.bookingSecondary
+                    : lead.status.toLowerCase() == "follow up"
+                    ? AppTheme.followUpSecondary
+                    : AppTheme.enquirySecondary,
 
                 onTap: () {
                   showFollowUpBottomSheet(
@@ -233,7 +237,7 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
 }
 
 class MultiDatePickerWidget extends StatelessWidget {
-  var controller = Get.put(EnquiryController());
+  final controller = Get.put(EnquiryController());
 
   @override
   Widget build(BuildContext context) {
@@ -474,8 +478,8 @@ void showLeadDetails(Lead lead, BuildContext context) {
               'Time',
               DateFormat('hh:mm a').format(lead.timestampDate),
             ),
-            if (lead.followUpNotes != null && lead.followUpNotes!.isNotEmpty)
-              buildDetailRow('Notes', lead.followUpNotes!),
+            if (lead.followUpNotes.isNotEmpty)
+              buildDetailRow('Notes', lead.followUpNotes),
           ],
         ),
       ),
@@ -526,8 +530,6 @@ void showFilterDialog(BuildContext context) {
 }
 
 void addNewLead(BuildContext context) async {
-  const formUrl = "https://forms.gle/VwS5BDQd7m1khRh78";
-
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
