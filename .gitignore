@@ -13,7 +13,6 @@
 migrate_working_dir/
 assets/google_credentials.json
 
-
 # IntelliJ related
 *.iml
 *.ipr
@@ -48,3 +47,5 @@ app.*.map.json
 
 assets/google_credentials.json
 
+# FVM Version Cache
+.fvm/
