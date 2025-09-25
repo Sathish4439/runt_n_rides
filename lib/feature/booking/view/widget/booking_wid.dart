@@ -406,15 +406,15 @@ Widget buildBookingCard(
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(width: 10),
-                  Tooltip(
-                    message:
-                        'This person completed all sessions but not paid the full amount',
-                    child: Icon(
-                      Icons.info,
-                      color: Colors.orange.shade400,
-                      size: 20,
-                    ),
-                  ),
+                  // Tooltip(
+                  //   message:
+                  //       'This person completed all sessions but not paid the full amount',
+                  //   child: Icon(
+                  //     Icons.info,
+                  //     color: Colors.orange.shade400,
+                  //     size: 20,
+                  //   ),
+                  // ),
                 ],
               ),
 
