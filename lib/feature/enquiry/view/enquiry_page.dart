@@ -134,11 +134,12 @@ class _EnquiryPageState extends State<EnquiryPage> {
                   calendarStyle: CalendarStyle(
                     todayDecoration: BoxDecoration(
                       color: Colors.blue.withOpacity(0.3),
-                      shape: BoxShape.circle,
+                      shape: BoxShape.rectangle,
                     ),
-                    selectedDecoration: const BoxDecoration(
+                    selectedDecoration: BoxDecoration(
                       color: Colors.blue,
                       shape: BoxShape.circle,
+                      border: Border.all(color: Colors.blue),
                     ),
                     outsideDaysVisible: false,
                   ),
@@ -165,46 +166,83 @@ class _EnquiryPageState extends State<EnquiryPage> {
 
                   // ✅ Correct markerBuilder with type casting
                   calendarBuilders: CalendarBuilders(
+                    defaultBuilder: (context, day, focusedDay) {
+                      // ✅ Add border around each date cell
+                      return Container(
+                      
+                        margin: const EdgeInsets.all(1),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 0.8,
+                          ),
+                         // borderRadius: BorderRadius.circular(6),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${day.day}',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    },
                     markerBuilder: (context, day, events) {
                       if (events.isEmpty) return const SizedBox();
 
-                      // Cast dynamic list into List<Lead>
                       final dayLeads = events.cast<Lead>();
 
-                      return Wrap(
-                        spacing: 2,
-                        runSpacing: 2,
-                        children: dayLeads.map((lead) {
-                          // Assign colors based on lead status
-                          Color markerColor;
-                          switch (lead.status.trim().toLowerCase()) {
-                            case 'follow up':
-                              markerColor = Colors.green;
-                              break;
-                            case 'lead':
-                              markerColor = Colors.red;
-                              break;
-                            case 'completed':
-                              markerColor = Colors.grey;
-                              break;
-                            default:
-                              markerColor = Colors.blue;
-                          }
+                      // Count leads by status
+                      Map<String, int> statusCount = {};
+                      for (var lead in dayLeads) {
+                        final key = lead.status.trim().toLowerCase();
+                        statusCount[key] = (statusCount[key] ?? 0) + 1;
+                      }
 
-                          return Column(
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                // child: Text(lead.status),
-                                decoration: BoxDecoration(
-                                  color: markerColor,
-                                  shape: BoxShape.circle,
+                      return Align(
+                        alignment: Alignment
+                            .topRight, // ✅ Position counts below the date
+                        child: Wrap(
+                          spacing: 2,
+                          runSpacing: 2,
+                          children: statusCount.entries.map((entry) {
+                            // Assign colors
+                            Color markerColor;
+                            switch (entry.key) {
+                              case 'follow up':
+                                markerColor = Colors.orange.shade100;
+                                break;
+                              case 'completed':
+                                markerColor = Colors.black;
+                                break;
+                              case 'booked':
+                                markerColor = Colors.green.shade100;
+                                break;
+                              case 'new':
+                                markerColor = Colors.red.shade100;
+                                break;
+                              default:
+                                markerColor = Colors.blue.shade100;
+                            }
+
+                            return Container(
+                              margin: const EdgeInsets.only(right: 3, top: 3),
+                              width: 16, // ✅ Smaller circle
+                              height: 16,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: markerColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '${entry.value}', // Count
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 10, // ✅ Smaller font
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ],
-                          );
-                        }).toList(),
+                            );
+                          }).toList(),
+                        ),
                       );
                     },
                   ),

@@ -1,14 +1,10 @@
-import 'dart:io';
-
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
 import 'package:RUTSNRIDES/core/services/api_service.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/feature/enquiry/view/confrim_booking_page.dart';
-import 'package:RUTSNRIDES/feature/enquiry/view/widget/enquity_wid.dart';
+import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:RUTSNRIDES/core/theme/app_theme.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/ongoing/controller/attandance_controller.dart';
@@ -39,19 +35,32 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
   late TextEditingController _completedController;
   late TextEditingController _remainingController;
 
-  final List<String> _attendanceOptions = ['Present', 'Absent', 'Cancelled'];
+  final List<String> _attendanceOptions = [
+    'Present',
+    'Absent',
+    'Cancelled',
+    'Pending',
+  ];
   final List<String> _durationOptions = [
     "Morning (9AM–12PM)",
     "Afternoon (2PM–5PM)",
     "Full Day",
   ];
-  final List<String> _completionOptions = ['Partial'];
 
   @override
   void initState() {
     super.initState();
+
+    // Clear any existing selected days when entering the screen
+    controller.selectedDays.clear();
+
+    // Reset calendar to current month
+    controller.focusedDay.value = DateTime.now();
+
+    // Initialize attendance data properly
     _editedAttendance = widget.attendance.copyWith();
 
+    // Initialize controllers with proper data
     _sessionController = TextEditingController(
       text: _editedAttendance.sessionNumber.toString(),
     );
@@ -65,47 +74,75 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
       text: _editedAttendance.sessionsRemaining.toString(),
     );
 
-    // Update attendance object and remaining when values change
-    _sessionController.addListener(() {
-      final value =
-          int.tryParse(_sessionController.text) ??
-          _editedAttendance.sessionNumber;
+    // Add listeners for real-time updates
+    _sessionController.addListener(_onSessionChanged);
+    _totalController.addListener(_onTotalChanged);
+    _completedController.addListener(_onCompletedChanged);
+  }
+
+  /// Reset form data to initial state
+  void _resetForm() {
+    if (mounted) {
+      setState(() {
+        _editedAttendance = widget.attendance.copyWith();
+        _sessionController.text = _editedAttendance.sessionNumber.toString();
+        _totalController.text = _editedAttendance.totalSessions.toString();
+        _completedController.text = _editedAttendance.sessionsCompleted
+            .toString();
+        _remainingController.text = _editedAttendance.sessionsRemaining
+            .toString();
+      });
+    }
+  }
+
+  void _onSessionChanged() {
+    final value =
+        int.tryParse(_sessionController.text) ??
+        _editedAttendance.sessionNumber;
+    if (mounted) {
       setState(() {
         _editedAttendance = _editedAttendance.copyWith(sessionNumber: value);
         _updateRemaining();
       });
-    });
+    }
+  }
 
-    _totalController.addListener(() {
-      final value =
-          int.tryParse(_totalController.text) ??
-          _editedAttendance.totalSessions;
+  void _onTotalChanged() {
+    final value =
+        int.tryParse(_totalController.text) ?? _editedAttendance.totalSessions;
+    if (mounted) {
       setState(() {
         _editedAttendance = _editedAttendance.copyWith(totalSessions: value);
-        _updateRemaining(); // <--- Update remaining here
+        _updateRemaining();
       });
-    });
+    }
+  }
 
-    _completedController.addListener(() {
-      final value =
-          int.tryParse(_completedController.text) ??
-          _editedAttendance.sessionsCompleted;
+  void _onCompletedChanged() {
+    final value =
+        int.tryParse(_completedController.text) ??
+        _editedAttendance.sessionsCompleted;
+    if (mounted) {
       setState(() {
         _editedAttendance = _editedAttendance.copyWith(
           sessionsCompleted: value,
         );
-        _updateRemaining(); // <--- Update remaining here
+        _updateRemaining();
       });
-    });
+    }
   }
 
   void _updateRemaining() {
     final remaining =
         _editedAttendance.totalSessions - _editedAttendance.sessionsCompleted;
-    _editedAttendance = _editedAttendance.copyWith(
-      sessionsRemaining: remaining,
-    );
-    _remainingController.text = remaining.toString();
+    if (mounted) {
+      setState(() {
+        _editedAttendance = _editedAttendance.copyWith(
+          sessionsRemaining: remaining,
+        );
+      });
+      _remainingController.text = remaining.toString();
+    }
   }
 
   @override
@@ -138,7 +175,45 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                   return StatefulBuilder(
                     builder: (context, setState) {
                       return AlertDialog(
-                        title: const Text("Select Session Duration"),
+                        title: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Select Session Duration"),
+                            const SizedBox(height: 4),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Selected Days:",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                ...controller.selectedDays
+                                    .map(
+                                      (day) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          left: 8,
+                                          bottom: 1,
+                                        ),
+                                        child: Text(
+                                          "• ${formatDate(day)}",
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ],
+                            ),
+                          ],
+                        ),
                         content: DropdownButtonFormField<String>(
                           value: selectedDuration,
                           items: const [
@@ -212,8 +287,14 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
               } catch (e) {
                 printData(e);
               } finally {
+                // Clear selections and refresh data
                 controller.selectedDays.clear();
                 controller.fetchAttendance();
+
+                // Show success message
+                if (context.mounted) {
+                  showSuccess("Planned dates updated successfully!");
+                }
               }
             },
 
@@ -251,254 +332,212 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                 _buildHeader(),
                 const SizedBox(height: 20),
                 Obx(
-                  () => TableCalendar(
-                    firstDay: DateTime.utc(2023, 1, 1),
-                    lastDay: DateTime.utc(2030, 12, 31),
-                    focusedDay: controller.focusedDay.value,
+                  () => Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Card(
+                      child: TableCalendar(
+                        firstDay: DateTime.utc(2023, 1, 1),
+                        lastDay: DateTime.utc(2030, 12, 31),
+                        focusedDay: controller.focusedDay.value,
 
-                    // ✅ highlight selected days
-                    selectedDayPredicate: (day) {
-                      return controller.selectedDays.any(
-                        (d) => isSameDay(d, day),
-                      );
-                    },
+                        // ✅ highlight selected days
+                        selectedDayPredicate: (day) => controller.selectedDays
+                            .any((d) => isSameDay(d, day)),
 
-                    calendarFormat: CalendarFormat.month,
-                    startingDayOfWeek: StartingDayOfWeek.monday,
-                    daysOfWeekVisible: true,
+                        // ✅ reactive calendar format
+                        calendarFormat: controller.calendarFormat.value,
+                        onFormatChanged: (format) {
+                          controller.calendarFormat.value = format;
+                        },
 
-                    // ✅ toggle multiple days
-                    onDaySelected: (selectedDay, focusedDay) {
-                      // Convert plannedDate strings from API into DateTime list
-                      final plannedDates =
-                          widget.attendance.bookingData?.plannedDate
-                              .map((d) => DateTime.parse(d.date))
-                              .toList() ??
-                          [];
+                        // ✅ allow user to switch between month, 2 weeks, week
+                        availableCalendarFormats: const {
+                          CalendarFormat.month: 'Month',
+                          CalendarFormat.twoWeeks: '2 Weeks',
+                          CalendarFormat.week: 'Week',
+                        },
 
-                      final isPlanned = plannedDates.any(
-                        (d) => isSameDay(d, selectedDay),
-                      );
-                      final isSelected = controller.selectedDays.any(
-                        (d) => isSameDay(d, selectedDay),
-                      );
+                        startingDayOfWeek: StartingDayOfWeek.monday,
+                        daysOfWeekVisible: true,
 
-                      if (isPlanned) {
-                        // ✅ Show dialog if user taps on already planned date
+                        // ✅ toggle multiple days
+                        onDaySelected: (selectedDay, focusedDay) {
+                          final plannedDates =
+                              widget.attendance.bookingData?.plannedDate
+                                  .map((d) => DateTime.parse(d.date))
+                                  .toList() ??
+                              [];
 
-                        setState(() {
-                          _editedAttendance = _editedAttendance.copyWith(
-                            sessionDate: selectedDay.toIso8601String(),
+                          final isPlanned = plannedDates.any(
+                            (d) => isSameDay(d, selectedDay),
                           );
-                        });
+                          final isSelected = controller.selectedDays.any(
+                            (d) => isSameDay(d, selectedDay),
+                          );
 
-                        showDialog(
-                          context: context,
-                          builder: (ctx) {
-                            return AlertDialog(
-                              title: Text("Update Attendance"),
-                              content: StatefulBuilder(
-                                builder: (context, setState) {
-                                  return Column(
+                          if (isPlanned) {
+                            // ✅ Show dialog if user taps on already planned date
+                            setState(() {
+                              _editedAttendance = _editedAttendance.copyWith(
+                                sessionDate: selectedDay.toIso8601String(),
+                              );
+                            });
+
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text("Update Attendance"),
+                                content: StatefulBuilder(
+                                  builder: (context, setState) => Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      Text("${formatDate(selectedDay)}"),
                                       const SizedBox(height: 10),
+
                                       _buildDropdown(
                                         'Attendance Status',
                                         _editedAttendance.attendanceStatus,
                                         _attendanceOptions,
-                                        (value) => setState(() {
+                                        (value) {
                                           if (value != null) {
-                                            _editedAttendance =
-                                                _editedAttendance.copyWith(
-                                                  attendanceStatus: value,
-                                                );
+                                            setState(() {
+                                              _editedAttendance =
+                                                  _editedAttendance.copyWith(
+                                                    attendanceStatus: value,
+                                                    sessionDate: selectedDay
+                                                        .toIso8601String(),
+                                                  );
+                                            });
                                           }
-
-                                          _editedAttendance = _editedAttendance
-                                              .copyWith(
-                                                sessionDate: selectedDay
-                                                    .toIso8601String(),
-                                              );
-                                        }),
+                                        },
                                       ),
                                       const SizedBox(height: 15),
                                       _buildDropdown(
                                         'Session Duration',
                                         _editedAttendance.sessionDuration,
                                         _durationOptions,
-                                        (value) => setState(() {
+                                        (value) {
                                           if (value != null) {
-                                            _editedAttendance =
-                                                _editedAttendance.copyWith(
-                                                  sessionDuration: value,
-                                                );
+                                            setState(() {
+                                              _editedAttendance =
+                                                  _editedAttendance.copyWith(
+                                                    sessionDuration: value,
+                                                  );
+                                            });
                                           }
-                                        }),
-                                      ),
-                                      const SizedBox(height: 15),
-                                      _buildDropdown(
-                                        'Session Completion',
-                                        _editedAttendance.sessionCompletion,
-                                        _completionOptions,
-                                        (value) => setState(() {
-                                          if (value != null) {
-                                            _editedAttendance =
-                                                _editedAttendance.copyWith(
-                                                  sessionCompletion: value,
-                                                );
-
-                                            if (value == "Completed") {
-                                              final booking =
-                                                  widget.attendance.bookingData;
-                                              if (booking != null &&
-                                                  booking.totalFee !=
-                                                      booking.totalPaid) {
-                                                showError(
-                                                  "Cannot mark the training as completed. Please verify that the full payment has been received and payment proof has been uploaded before completing the session.",
-                                                );
-                                              }
-                                            }
-                                          }
-                                        }),
+                                        },
                                       ),
                                       const SizedBox(height: 20),
                                       _buildActionButtons(),
                                     ],
-                                  );
-                                },
+                                  ),
+                                ),
                               ),
                             );
-                          },
-                        );
-                      } else if (isSelected) {
-                        // Remove from user’s selections
-                        controller.selectedDays.removeWhere(
-                          (d) => isSameDay(d, selectedDay),
-                        );
-                      } else {
-                        // Add new selection
-                        controller.selectedDays.add(selectedDay);
-                      }
+                          } else if (isSelected) {
+                            // Remove from user’s selections
+                            controller.selectedDays.removeWhere(
+                              (d) => isSameDay(d, selectedDay),
+                            );
+                          } else {
+                            // Add new selection
+                            controller.selectedDays.add(selectedDay);
+                          }
 
-                      controller.focusedDay.value = focusedDay;
-                    },
-                    calendarBuilders: CalendarBuilders(
-                      defaultBuilder: (context, day, focusedDay) {
-                        if (widget.attendance.bookingData != null) {
-                          printData(widget.attendance.bookingData!.toJson());
-                        }
-                        final plannedDates =
-                            widget.attendance.bookingData?.plannedDate
-                                .map((d) => DateTime.tryParse(d.date))
-                                .where((d) => d != null)
-                                .cast<DateTime>()
-                                .toList() ??
-                            [];
+                          controller.focusedDay.value = focusedDay;
+                        },
 
-                        printData("plannedDates $plannedDates");
-                        printData(
-                          "widget.attendance.bookingData?.plannedDate ${widget.attendance.bookingData?.plannedDate}",
-                        );
+                        // ✅ custom builders for different states
+                        calendarBuilders: CalendarBuilders(
+                          defaultBuilder: (context, day, focusedDay) {
+                            final plannedDates =
+                                widget.attendance.bookingData?.plannedDate
+                                    .map((d) => DateTime.tryParse(d.date))
+                                    .where((d) => d != null)
+                                    .cast<DateTime>()
+                                    .toList() ??
+                                [];
 
-                        final completedDates =
-                            widget.attendance.completedDates ?? [];
+                            final completedDates =
+                                widget.attendance.completedDates ?? [];
 
-                        // Find if this day has a completed entry
-                        final completedEntry = completedDates.firstWhere(
-                          (d) => isSameDay(DateTime.tryParse(d.date), day),
-                          orElse: () => CompletedDate(date: "", duration: ""),
-                        );
+                            final completedEntry = completedDates.firstWhere(
+                              (d) => isSameDay(DateTime.tryParse(d.date), day),
+                              orElse: () =>
+                                  CompletedDate(date: "", duration: ""),
+                            );
 
-                        final isCompleted = completedEntry.date.isNotEmpty;
+                            final isCompleted = completedEntry.date.isNotEmpty;
+                            final isPlanned = plannedDates.any(
+                              (d) => isSameDay(d, day),
+                            );
+                            final isSelected = controller.selectedDays.any(
+                              (d) => isSameDay(d, day),
+                            );
 
-                        final isPlanned = plannedDates.any(
-                          (d) => isSameDay(d, day),
-                        );
-                        final isSelected = controller.selectedDays.any(
-                          (d) => isSameDay(d, day),
-                        );
-
-                        // 🔹 Wrap with GestureDetector for completed dates
-                        if (isCompleted) {
-                          return GestureDetector(
-                            onTap: () {
-                              // 🔹 Show dialog with completed duration info
-                              showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return AlertDialog(
-                                    title: const Text("Completed Session"),
-                                    content: Text(
-                                      "${day.day}/${day.month}/${day.year}\nDuration: ${completedEntry.duration}",
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text("OK"),
-                                      ),
-                                    ],
+                            // 🔹 Completed date (red)
+                            if (isCompleted) {
+                              return GestureDetector(
+                                onTap: () {
+                                  _showEditCompletedDateDialog(
+                                    context,
+                                    day,
+                                    completedEntry,
+                                    widget.attendance,
+                                    controller,
                                   );
                                 },
+                                child: _buildDayCell(
+                                  day.day,
+                                  Colors.red.withOpacity(0.5),
+                                ),
                               );
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.5),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(child: Text("${day.day}")),
-                            ),
-                          );
-                        }
+                            }
 
-                        if (isPlanned && isSelected) {
-                          return Container(
-                            margin: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.7),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(child: Text("${day.day}")),
-                          );
-                        } else if (isPlanned && !isCompleted) {
-                          return Container(
-                            margin: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.5),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(child: Text("${day.day}")),
-                          );
-                        } else if (isSelected) {
-                          return Container(
-                            margin: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.orange,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Center(child: Text("${day.day}")),
-                          );
-                        }
+                            // 🔹 Planned + Selected (dark red)
+                            if (isPlanned && isSelected) {
+                              return _buildDayCell(
+                                day.day,
+                                Colors.red.withOpacity(0.7),
+                              );
+                            }
 
-                        return null;
-                      },
-                    ),
+                            // 🔹 Planned only (green)
+                            if (isPlanned) {
+                              return _buildDayCell(
+                                day.day,
+                                Colors.green.withOpacity(0.5),
+                              );
+                            }
 
-                    calendarStyle: CalendarStyle(
-                      todayDecoration: BoxDecoration(
-                        color: Colors.blueAccent,
-                        shape: BoxShape.circle,
-                      ),
-                      selectedDecoration: BoxDecoration(
-                        color: Colors.orange,
-                        shape: BoxShape.circle,
+                            // 🔹 Selected only (orange)
+                            if (isSelected) {
+                              return _buildDayCell(day.day, Colors.orange);
+                            }
+
+                            return null; // default rendering
+                          },
+                        ),
+
+                        // ✅ styles
+                        calendarStyle: const CalendarStyle(
+                          todayDecoration: BoxDecoration(
+                            color: Colors.blueAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          selectedDecoration: BoxDecoration(
+                            color: Colors.orange,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
+
+                /// Helper for rendering day cells
 
                 // _buildRiderInfo(),
                 // const SizedBox(height: 20),
@@ -523,6 +562,7 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                 ),
 
                 Divider(),
+
                 if (widget.attendance.bookingData != null)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,6 +576,19 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                         _infoText(
                           "Total Amount Paid",
                           widget.attendance.bookingData!.totalPaid
+                                  ?.toString() ??
+                              "0",
+                        ),
+                        const Divider(),
+                        _infoText(
+                          "Medical Condition",
+                          widget.attendance.bookingData!.medicalCondition
+                                  ?.toString() ??
+                              "0",
+                        ),
+                        _infoText(
+                          "program details",
+                          widget.attendance.bookingData!.programDetails
                                   ?.toString() ??
                               "0",
                         ),
@@ -559,6 +612,12 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
                         _infoText(
                           "Shirt Size",
                           widget.attendance.bookingData!.shirtSize ?? "-",
+                        ),
+                        _infoText(
+                          "Remaining Amount",
+                          _calculateRemainingAmount(
+                            widget.attendance.bookingData!,
+                          ),
                         ),
                       ] else ...[
                         _infoText("Booking Data", "Not available"),
@@ -664,10 +723,6 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
             color: Colors.blue,
           ),
         ),
-        IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.pop(context),
-        ),
       ],
     );
   }
@@ -690,6 +745,19 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDayCell(int day, Color color) {
+    return Container(
+      margin: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color, width: 2),
+
+        shape: BoxShape.rectangle,
+      ),
+      child: Center(child: Text("$day")),
     );
   }
 
@@ -842,6 +910,23 @@ class _AttendanceBottomSheetState extends State<AttendanceBottomSheet> {
     if (_formKey.currentState!.validate()) {
       widget.onSave(_editedAttendance);
       Navigator.pop(context);
+    }
+  }
+
+  /// Calculate remaining amount from booking data
+  String _calculateRemainingAmount(Booking bookingData) {
+    try {
+      final totalFee = bookingData.totalFee ?? 0;
+      final totalPaid = bookingData.totalPaid ?? 0;
+      final remaining = totalFee - totalPaid;
+
+      if (remaining <= 0) {
+        return "₹0 (Fully Paid)";
+      } else {
+        return "₹$remaining";
+      }
+    } catch (e) {
+      return "N/A";
     }
   }
 }
@@ -1035,29 +1120,55 @@ Widget buildAttendanceCard(
             flex: 3,
             child: GestureDetector(
               onTap: () {
+                // if (attendance.sessionCompletion == "Completed") {
+                //   _showEditOptionsPopup(attendance, context, controller);
+                // } else {
                 showAttendanceSheet(attendance, context, controller);
+                // }
               },
               child: Card(
-                color: attendance.sessionCompletion == "Completed"
-                    ? Colors.blue.shade100
-                    : AppTheme.textOnPrimary,
+                // color: getStatusBackgroundColor(attendance.attendanceStatus),
                 elevation: 2,
+
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
                     children: [
-                      // Avatar
-                      CircleAvatar(
-                        backgroundColor: getStatusColor(
-                          attendance.attendanceStatus,
-                        ),
-                        child: Text(
-                          attendance.riderName[0],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                      // Avatar with status indicator
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: getStatusColor(
+                              attendance.attendanceStatus,
+                            ),
+                            child: Text(
+                              attendance.riderName[0],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
+                          // Status indicator dot
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                // color: getStatusColor(
+                                //   attendance.attendanceStatus,
+                                // ),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 12),
 
@@ -1065,7 +1176,6 @@ Widget buildAttendanceCard(
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               attendance.riderName,
@@ -1075,48 +1185,105 @@ Widget buildAttendanceCard(
                               ),
                             ),
                             const SizedBox(height: 4),
-                            Text('Phone: ${attendance.phoneNumber}'),
                             Text(
-                              'Session: ${attendance.sessionsCompleted}/${attendance.totalSessions}',
-                            ),
-
-                            // ✅ Planned session for selected date (safe check)
-                            if (selectedDate != null)
-                              Text(
-                                'Planned: ${GetSessionByDate(selectedDate, attendance.bookingData?.plannedDate ?? [])}',
-                                style: const TextStyle(color: Colors.green),
-                              )
-                            else
-                              const Text(
-                                'No planned date',
-                                style: TextStyle(color: Colors.red),
+                              attendance.phoneNumber,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
                               ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                // Container(
+                                //   padding: const EdgeInsets.symmetric(
+                                //     horizontal: 8,
+                                //     vertical: 2,
+                                //   ),
+                                //   // decoration: BoxDecoration(
+                                //   //   color: getStatusColor(
+                                //   //     attendance.attendanceStatus,
+                                //   //   ),
+                                //   //   borderRadius: BorderRadius.circular(12),
+                                //   // ),
+                                //   child: Text(
+                                //     attendance.attendanceStatus,
+                                //     style: const TextStyle(
+                                //       color: Colors.white,
+                                //       fontSize: 12,
+                                //       fontWeight: FontWeight.bold,
+                                //     ),
+                                //   ),
+                                // ),
+                                // const SizedBox(width: 8),
+                                Text(
+                                  'Session ${attendance.sessionNumber}/${attendance.totalSessions}',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                // if (attendance.sessionCompletion ==
+                                //     "Completed") ...[
+                                //   const SizedBox(width: 8),
+                                //   Container(
+                                //     padding: const EdgeInsets.symmetric(
+                                //       horizontal: 6,
+                                //       vertical: 2,
+                                //     ),
+                                //     decoration: BoxDecoration(
+                                //       color: Colors.green,
+                                //       borderRadius: BorderRadius.circular(8),
+                                //     ),
+                                //     child: const Text(
+                                //       '✓ Completed',
+                                //       style: TextStyle(
+                                //         color: Colors.white,
+                                //         fontSize: 10,
+                                //         fontWeight: FontWeight.bold,
+                                //       ),
+                                //     ),
+                                //   ),
+                                // ],
+                              ],
+                            ),
+                            // Add remaining amount if booking data is available
+                            // if (attendance.bookingData != null) ...[
+                            //   const SizedBox(height: 4),
+                            //   Text(
+                            //     _calculateRemainingAmountForCard(
+                            //       attendance.bookingData!,
+                            //     ),
+                            //     style: TextStyle(
+                            //       color: _getRemainingAmountColor(
+                            //         attendance.bookingData!,
+                            //       ),
+                            //       fontSize: 12,
+                            //       fontWeight: FontWeight.w500,
+                            //     ),
+                            //   ),
+                            // ],
                           ],
                         ),
                       ),
-                    ],
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          Get.to(() => LapsScreen(attendance: attendance));
+                        },
+                        child: const Center(
+                          child: Icon(Icons.watch_later_outlined),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                        ],
                   ),
                 ),
               ),
             ),
           ),
 
-          const SizedBox(width: 12),
-
           // Second Card: Action button
-          Expanded(
-            flex: 1,
-            child: Card(
-              elevation: 2,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  Get.to(() => LapsScreen(attendance: attendance));
-                },
-                child: const Center(child: Icon(Icons.watch_later_outlined)),
-              ),
-            ),
-          ),
         ],
       ),
     ),
@@ -1143,6 +1310,29 @@ void showAttendanceSheet(
     ),
   );
 }
+
+/// Show edit dialog for completed date details
+void _showEditCompletedDateDialog(
+  BuildContext context,
+  DateTime day,
+  CompletedDate completedEntry,
+  Attendance attendance,
+  AttendanceController controller,
+) {
+  showDialog(
+    context: context,
+    builder: (context) => EditCompletedDateDialog(
+      day: day,
+      completedEntry: completedEntry,
+      attendance: attendance,
+      onSave: (updatedEntry) {
+        controller.updateCompletedDate(attendance, day, updatedEntry);
+      },
+    ),
+  );
+}
+
+/// Show edit options popup for completed sessions
 
 Widget buildEmptyState() {
   return Center(
@@ -1173,8 +1363,716 @@ Color getStatusColor(String status) {
       return Colors.red;
     case 'Cancelled':
       return Colors.orange;
+    case 'Pending':
+      return Colors.blue;
     default:
       return Colors.grey;
+  }
+}
+
+Color getStatusBackgroundColor(String status) {
+  switch (status) {
+    case 'Present':
+      return Colors.green.withOpacity(0.1);
+    case 'Absent':
+      return Colors.red.withOpacity(0.1);
+    case 'Cancelled':
+      return Colors.orange.withOpacity(0.1);
+    case 'Pending':
+      return Colors.blue.withOpacity(0.1);
+    default:
+      return Colors.grey.withOpacity(0.1);
+  }
+}
+
+Color getStatusBorderColor(String status) {
+  switch (status) {
+    case 'Present':
+      return Colors.green.withOpacity(0.3);
+    case 'Absent':
+      return Colors.red.withOpacity(0.3);
+    case 'Cancelled':
+      return Colors.orange.withOpacity(0.3);
+    case 'Pending':
+      return Colors.blue.withOpacity(0.3);
+    default:
+      return Colors.grey.withOpacity(0.3);
+  }
+}
+
+Widget _buildLegendItem(String status, Color color) {
+  return Row(
+    children: [
+      Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 6),
+      Text(status, style: const TextStyle(fontSize: 12)),
+    ],
+  );
+}
+
+/// Session Details Update Form
+class SessionDetailsForm extends StatefulWidget {
+  final Attendance attendance;
+  final Function(Attendance) onSave;
+
+  const SessionDetailsForm({
+    Key? key,
+    required this.attendance,
+    required this.onSave,
+  }) : super(key: key);
+
+  @override
+  _SessionDetailsFormState createState() => _SessionDetailsFormState();
+}
+
+class _SessionDetailsFormState extends State<SessionDetailsForm> {
+  final _formKey = GlobalKey<FormState>();
+  late Attendance _editedAttendance;
+
+  late TextEditingController _sessionNumberController;
+  late TextEditingController _totalSessionsController;
+  late TextEditingController _sessionsCompletedController;
+  late TextEditingController _fullDaysController;
+  late TextEditingController _halfDaysController;
+
+  final List<String> _attendanceOptions = [
+    'Present',
+    'Absent',
+    'Cancelled',
+    'Pending',
+  ];
+  final List<String> _durationOptions = [
+    "Morning (9AM–12PM)",
+    "Afternoon (2PM–5PM)",
+    "Full Day",
+  ];
+  final List<String> _completionOptions = [
+    'Not Started',
+    'Partial',
+    'Completed',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _editedAttendance = widget.attendance;
+
+    _sessionNumberController = TextEditingController(
+      text: _editedAttendance.sessionNumber.toString(),
+    );
+    _totalSessionsController = TextEditingController(
+      text: _editedAttendance.totalSessions.toString(),
+    );
+    _sessionsCompletedController = TextEditingController(
+      text: _editedAttendance.sessionsCompleted.toString(),
+    );
+    _fullDaysController = TextEditingController(
+      text: _editedAttendance.fullDaysDone.toString(),
+    );
+    _halfDaysController = TextEditingController(
+      text: _editedAttendance.halfDaysDone.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _sessionNumberController.dispose();
+    _totalSessionsController.dispose();
+    _sessionsCompletedController.dispose();
+    _fullDaysController.dispose();
+    _halfDaysController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var expanded = Expanded(
+      child: _buildDropdown(
+        'Completion',
+        _editedAttendance.sessionCompletion,
+        _completionOptions,
+        (value) {
+          if (value != null) {
+            setState(() {
+              _editedAttendance = _editedAttendance.copyWith(
+                sessionCompletion: value,
+              );
+            });
+          }
+        },
+      ),
+    );
+    return Dialog(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Update Session Details',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Session Information
+              _buildSectionTitle('Session Information'),
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      'Session Number',
+                      _sessionNumberController,
+                      (value) {
+                        _editedAttendance = _editedAttendance.copyWith(
+                          sessionNumber: int.tryParse(value) ?? 0,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildTextField(
+                      'Total Sessions',
+                      _totalSessionsController,
+                      (value) {
+                        _editedAttendance = _editedAttendance.copyWith(
+                          totalSessions: int.tryParse(value) ?? 0,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
+
+              // Attendance Status
+              _buildSectionTitle('Attendance Status'),
+              const SizedBox(height: 10),
+              _buildDropdown(
+                'Status',
+                _editedAttendance.attendanceStatus,
+                _attendanceOptions,
+                (value) {
+                  if (value != null) {
+                    setState(() {
+                      _editedAttendance = _editedAttendance.copyWith(
+                        attendanceStatus: value,
+                      );
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 15),
+
+              // Session Details
+              _buildSectionTitle('Session Details'),
+              const SizedBox(height: 10),
+
+              Column(
+                children: [
+                  _buildDropdown(
+                    'Duration',
+                    _editedAttendance.sessionDuration,
+                    _durationOptions,
+                    (value) {
+                      if (value != null) {
+                        setState(() {
+                          _editedAttendance = _editedAttendance.copyWith(
+                            sessionDuration: value,
+                          );
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  expanded,
+                ],
+              ),
+              const SizedBox(height: 15),
+
+              // Progress Tracking
+              _buildSectionTitle('Progress Tracking'),
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      'Sessions Completed',
+                      _sessionsCompletedController,
+                      (value) {
+                        _editedAttendance = _editedAttendance.copyWith(
+                          sessionsCompleted: int.tryParse(value) ?? 0,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildTextField(
+                      'Sessions Remaining',
+                      TextEditingController(
+                        text:
+                            (_editedAttendance.totalSessions -
+                                    _editedAttendance.sessionsCompleted)
+                                .toString(),
+                      ),
+                      null, // Read-only
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildTextField(
+                      'Full Days Done',
+                      _fullDaysController,
+                      (value) {
+                        _editedAttendance = _editedAttendance.copyWith(
+                          fullDaysDone: int.tryParse(value) ?? 0,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildTextField(
+                      'Half Days Done',
+                      _halfDaysController,
+                      (value) {
+                        _editedAttendance = _editedAttendance.copyWith(
+                          halfDaysDone: int.tryParse(value) ?? 0,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        side: BorderSide(color: Colors.grey.shade400),
+                      ),
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _saveSessionDetails,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                      ),
+                      child: const Text(
+                        'Save Changes',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.blue,
+      ),
+    );
+  }
+
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller,
+    Function(String)? onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: controller,
+          enabled: onChanged != null,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+          ),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdown(
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String?> onChanged,
+  ) {
+    final validValue = items.contains(value)
+        ? value
+        : (items.isNotEmpty ? items.first : null);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: validValue,
+            items: items
+                .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                .toList(),
+            onChanged: onChanged,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _saveSessionDetails() {
+    if (_formKey.currentState!.validate()) {
+      // Calculate sessions remaining
+      final sessionsRemaining =
+          _editedAttendance.totalSessions - _editedAttendance.sessionsCompleted;
+      _editedAttendance = _editedAttendance.copyWith(
+        sessionsRemaining: sessionsRemaining,
+      );
+
+      widget.onSave(_editedAttendance);
+      Navigator.pop(context);
+    }
+  }
+}
+
+/// Dialog for editing completed date details
+class EditCompletedDateDialog extends StatefulWidget {
+  final DateTime day;
+  final CompletedDate completedEntry;
+  final Attendance attendance;
+  final Function(CompletedDate) onSave;
+
+  const EditCompletedDateDialog({
+    Key? key,
+    required this.day,
+    required this.completedEntry,
+    required this.attendance,
+    required this.onSave,
+  }) : super(key: key);
+
+  @override
+  _EditCompletedDateDialogState createState() =>
+      _EditCompletedDateDialogState();
+}
+
+class _EditCompletedDateDialogState extends State<EditCompletedDateDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late CompletedDate _editedEntry;
+  var controller = Get.find<AttendanceController>();
+  final List<String> _durationOptions = [
+    "Morning (9AM–12PM)",
+    "Afternoon (2PM–5PM)",
+    "Full Day",
+  ];
+  final List<String> _statusOptions = [
+    'Present',
+    'Absent',
+    'Cancelled',
+    'Pending',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _editedEntry = widget.completedEntry;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.85,
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Completed Session',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${widget.day.day}/${widget.day.month}/${widget.day.year}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      controller.enableEdit.value = false;
+                    },
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildSectionTitle('Session Details'),
+
+                  CommonButton(
+                    text: "Edit",
+                    onTap: () {
+                      controller.enableEdit.value =
+                          !controller.enableEdit.value;
+                    },
+                  ),
+                ],
+              ),
+
+              // Session Details
+              Obx(
+                () => Visibility(
+                  visible: !controller.enableEdit.value,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_editedEntry.duration}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        '${_editedEntry.status}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Obx(
+                () => Visibility(
+                  visible: controller.enableEdit.value,
+                  child: Column(
+                    children: [
+                      _buildDropdown(
+                        'Duration',
+                        _editedEntry.duration,
+                        _durationOptions,
+                        (value) {
+                          if (value != null) {
+                            setState(() {
+                              _editedEntry = CompletedDate(
+                                date: _editedEntry.date,
+                                duration: value,
+                                status: _editedEntry.status,
+                              );
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 15),
+
+                      _buildDropdown(
+                        'Status',
+                        _editedEntry.status ?? 'Pending',
+                        _statusOptions,
+                        (value) {
+                          if (value != null) {
+                            setState(() {
+                              _editedEntry = CompletedDate(
+                                date: _editedEntry.date,
+                                duration: _editedEntry.duration,
+                                status: value,
+                              );
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 30),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                               onPressed: () {
+                      Navigator.pop(context);
+                      controller.enableEdit.value = false;
+                    },
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                side: BorderSide(color: Colors.grey.shade400),
+                              ),
+                              child: const Text('Cancel'),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _saveChanges,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: const Text(
+                                'Save Changes',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.blue,
+      ),
+    );
+  }
+
+  Widget _buildDropdown(
+    String label,
+    String value,
+    List<String> items,
+    ValueChanged<String?> onChanged,
+  ) {
+    final validValue = items.contains(value)
+        ? value
+        : (items.isNotEmpty ? items.first : null);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: validValue,
+            items: items
+                .map((val) => DropdownMenuItem(value: val, child: Text(val)))
+                .toList(),
+            onChanged: onChanged,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _saveChanges() {
+    if (_formKey.currentState!.validate()) {
+      widget.onSave(_editedEntry);
+      Navigator.pop(context);
+      controller.enableEdit.value = false;
+    }
   }
 }
 
@@ -1201,69 +2099,6 @@ Future<void> selectDate(
   if (picked != null) {
     controller.filterByDate(picked);
   }
-}
-
-void showAttendanceDetails(Attendance attendance) {
-  Get.bottomSheet(
-    Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 60,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Attendance Details',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-            const SizedBox(height: 20),
-            buildDetailItem('Rider Name', attendance.riderName),
-            buildDetailItem('Phone', attendance.phoneNumber),
-            buildDetailItem('Program', attendance.programBooked),
-            buildDetailItem('Session Date', attendance.sessionDate),
-            buildDetailItem(
-              'Session',
-              '${attendance.sessionNumber}/${attendance.totalSessions}',
-            ),
-            buildDetailItem('Status', attendance.attendanceStatus),
-            buildDetailItem('Duration', attendance.sessionDuration),
-            buildDetailItem('Completion', attendance.sessionCompletion),
-            buildDetailItem(
-              'Sessions Completed',
-              attendance.sessionsCompleted.toString(),
-            ),
-            buildDetailItem('Full Days', attendance.fullDaysDone.toString()),
-            buildDetailItem('Half Days', attendance.halfDaysDone.toString()),
-            buildDetailItem(
-              'Remaining',
-              attendance.sessionsRemaining.toString(),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 Widget buildDetailItem(String label, String value) {
@@ -1335,5 +2170,39 @@ extension AttendanceCopyWith on Attendance {
       updatedAt: updatedAt ?? this.updatedAt,
       completedDates: completedDates ?? this.completedDates,
     );
+  }
+}
+
+/// Calculate remaining amount for attendance card display
+String _calculateRemainingAmountForCard(Booking bookingData) {
+  try {
+    final totalFee = bookingData.totalFee ?? 0;
+    final totalPaid = bookingData.totalPaid ?? 0;
+    final remaining = totalFee - totalPaid;
+
+    if (remaining <= 0) {
+      return "Fully Paid";
+    } else {
+      return "Remaining: ₹$remaining";
+    }
+  } catch (e) {
+    return "Payment: N/A";
+  }
+}
+
+/// Get color for remaining amount display
+Color _getRemainingAmountColor(Booking bookingData) {
+  try {
+    final totalFee = bookingData.totalFee ?? 0;
+    final totalPaid = bookingData.totalPaid ?? 0;
+    final remaining = totalFee - totalPaid;
+
+    if (remaining <= 0) {
+      return Colors.green; // Fully paid - green
+    } else {
+      return Colors.orange; // Amount remaining - orange
+    }
+  } catch (e) {
+    return Colors.grey; // Error - grey
   }
 }

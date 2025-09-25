@@ -1,5 +1,4 @@
 // attendance_screen.dart
-import 'package:RUTSNRIDES/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -21,6 +20,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  CalendarFormat _calendarFormat = CalendarFormat.month;
 
   @override
   void initState() {
@@ -41,10 +41,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     }).toList();
   }
 
-  /// ✅ Collect planned dates for all users
-  /// Group planned dates for calendar (duplicates allowed)
-  Map<DateTime, List<String>> groupPlannedDatesForCalendar() {
-    final map = <DateTime, List<String>>{};
+  /// ✅ Collect planned dates for all users with status information
+  /// Group planned dates for calendar with attendance status
+  Map<DateTime, List<Map<String, dynamic>>> groupPlannedDatesForCalendar() {
+    final map = <DateTime, List<Map<String, dynamic>>>{};
     final seen = <String, Set<String>>{};
     // key = dayKey, value = set of bookingData.id already added for that day
 
@@ -65,11 +65,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         if (!seen[dayKey.toIso8601String()]!.contains(bookingId)) {
           seen[dayKey.toIso8601String()]!.add(bookingId);
 
-          // Add rider name to map
+          // Add rider info with status to map
           map.update(
             dayKey,
-            (list) => [...list, att.riderName ?? "Unknown"],
-            ifAbsent: () => [att.riderName ?? "Unknown"],
+            (list) => [
+              ...list,
+              {'name': att.riderName, 'status': att.attendanceStatus},
+            ],
+            ifAbsent: () => [
+              {'name': att.riderName, 'status': att.attendanceStatus},
+            ],
           );
         }
       }
@@ -86,12 +91,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         centerTitle: true,
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: controller.refreshData,
-          ),
-        ],
+        actions: [],
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -110,9 +110,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         return Column(
           children: [
             // Calendar
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Card(
+            Card(
+              margin: const EdgeInsets.all(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
                 child: TableCalendar(
                   firstDay: DateTime.utc(2020, 1, 1),
                   lastDay: DateTime.utc(2030, 12, 31),
@@ -127,7 +128,17 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       _focusedDay = focused;
                     });
                   },
-                  calendarFormat: CalendarFormat.month,
+                  calendarFormat: _calendarFormat,
+                  onFormatChanged: (format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  },
+                  availableCalendarFormats: const {
+                    CalendarFormat.month: 'Month',
+                    CalendarFormat.twoWeeks: '2 Weeks',
+                    CalendarFormat.week: 'Week',
+                  },
                   calendarStyle: CalendarStyle(
                     todayDecoration: BoxDecoration(
                       color: Colors.blue.withOpacity(0.3),
@@ -139,28 +150,70 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     ),
                   ),
                   calendarBuilders: CalendarBuilders(
+                    defaultBuilder: (context, day, focusedDay) {
+                      return Container(
+                        margin: const EdgeInsets.all(1),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Colors.grey.shade500,
+                            width: 0.8,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${day.day}',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      );
+                    },
                     markerBuilder: (context, date, events) {
-                     
+                      if (events.isEmpty) return const SizedBox();
 
-                      if (events.isNotEmpty) {
-                        return Wrap(
-                          alignment: WrapAlignment.center,
-                          children: events.map((_) {
-                            return Container(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 0.5,
-                              ),
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: Colors.green,
-                                shape: BoxShape.circle,
-                              ),
-                            );
-                          }).toList(),
-                        );
+                      // Get the most common status for this day
+                      final statusCounts = <String, int>{};
+                      for (var event in events) {
+                        if (event is Map<String, dynamic>) {
+                          final status =
+                              event['status'] as String? ?? 'Pending';
+                          statusCounts[status] =
+                              (statusCounts[status] ?? 0) + 1;
+                        }
                       }
-                      return null;
+
+                      // Determine the primary color based on status priority
+                      String primaryStatus = 'Pending';
+                      if (statusCounts.containsKey('Present')) {
+                        primaryStatus = 'Present';
+                      } else if (statusCounts.containsKey('Absent')) {
+                        primaryStatus = 'Absent';
+                      } else if (statusCounts.containsKey('Cancelled')) {
+                        primaryStatus = 'Cancelled';
+                      }
+
+                      return Align(
+                        alignment: Alignment.topRight,
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 3, top: 3),
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: getStatusColor(primaryStatus),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${events.length}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
                     },
                   ),
 
@@ -190,8 +243,6 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               ),
             ),
-
-            const SizedBox(height: 10),
 
             // Selected date header
             if (_selectedDay != null)

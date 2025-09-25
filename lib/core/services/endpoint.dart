@@ -23,6 +23,7 @@ class EndPoints {
   static final attendance = "form_attendance";
   static final getAllAttendance = "$attendance/";
   static final createAttendence = "$attendance/";
+  static final mark_completed = "$attendance/mark_completed";
 
   //form
   static final form = "form";

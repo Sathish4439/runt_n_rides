@@ -50,7 +50,15 @@ class Booking {
   final String programBooked;
   final String programDetails;
   final String bookingDate;
-  final String preferredSessionDate;
+  final String enquiryDate;
+  final String? additionalPhone;
+  final String? email;
+  final String courseFee;
+  final String bikeRentalPrice;
+  final String gearRentalPrice;
+  final String accomdationPrice;
+  final String bikeRental;
+  final String gearRental;
   final String trainingSlot;
   final String height;
   final String weight;
@@ -58,8 +66,8 @@ class Booking {
   final String pantSize;
   final String headSize;
   final String sessionType;
-  final String bikeRental;
-  final String gearRental;
+  final bool? isloading;
+
   final int riderAge;
   final String instagramProfile;
   final String parentName;
@@ -76,9 +84,19 @@ class Booking {
   // Payment list
   List<PaymentDetails> payment;
 
+  // Attendance details
+
   Booking({
+    this.isloading,
     this.id,
     required this.timestamp,
+    this.additionalPhone,
+    this.email,
+    required this.enquiryDate,
+    required this.courseFee,
+    required this.bikeRentalPrice,
+    required this.gearRentalPrice,
+    required this.accomdationPrice,
     required this.riderName,
     required this.medicalCondition,
     required this.phone,
@@ -86,7 +104,6 @@ class Booking {
     required this.instagramProfile,
     required this.programDetails,
     required this.bookingDate,
-    required this.preferredSessionDate,
     required this.trainingSlot,
     required this.height,
     required this.weight,
@@ -125,6 +142,13 @@ class Booking {
 
     return Booking(
       id: json["_id"]?.toString(),
+      additionalPhone: json["additionalPhone"] ?? "",
+      email: json["email"] ?? "",
+      enquiryDate: json["enquiryDate"] ?? "",
+      courseFee: json["coursePrice"] ?? "",
+      bikeRentalPrice: json["bikeRentalPrice"] ?? "",
+      gearRentalPrice: json["gearRentalPrice"] ?? "",
+      accomdationPrice: json["accomdationPrice"] ?? "",
       timestamp: json["timestamp"]?.toString() ?? "",
       riderName: json["fullNameOfRider"] ?? "",
       medicalCondition: json['medicalCondition'] ?? "",
@@ -133,7 +157,6 @@ class Booking {
       programDetails: json["programDetails"] ?? "",
       accomdation: json['accomdation'] ?? "",
       bookingDate: json["bookingDate"] ?? "",
-      preferredSessionDate: json["sessionDate"] ?? "",
       trainingSlot: json["trainingSlot"] ?? "",
       instagramProfile: json['instagramProfile'],
       height: json["height"] ?? "",
@@ -169,10 +192,10 @@ class Booking {
       "fullNameOfRider": riderName,
       "medicalCondition": medicalCondition,
       "phoneNumber": phone,
+      "enquiryDate": enquiryDate,
       "programBooked": programBooked,
       "programDetails": programDetails,
       "bookingDate": bookingDate,
-      "sessionDate": preferredSessionDate,
       "trainingSlot": trainingSlot,
       "height": height,
       "weight": weight,
@@ -191,10 +214,24 @@ class Booking {
       "payment": payment.map((e) => e.toJson()).toList(),
       "totalFee": totalFee,
       "totalPaid": totalPaid,
+      "additionalPhone": additionalPhone,
+      "email": email,
+      "courseFee": courseFee,
+      "bikeRentalPrice": bikeRentalPrice,
+      "gearRentalPrice": gearRentalPrice,
+      "accomdationPrice": accomdationPrice,
+      "instagramProfile": instagramProfile,
     };
   }
 
   static final nullBookingdata = Booking(
+    enquiryDate: "",
+    additionalPhone: "",
+    email: "",
+    courseFee: "",
+    bikeRentalPrice: "",
+    gearRentalPrice: "",
+    accomdationPrice: "",
     timestamp: "",
     riderName: "",
     medicalCondition: "",
@@ -202,7 +239,6 @@ class Booking {
     programBooked: "",
     programDetails: "",
     bookingDate: "",
-    preferredSessionDate: "",
     trainingSlot: "",
     height: "",
     weight: "",

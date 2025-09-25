@@ -7,6 +7,7 @@ import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 import 'package:RUTSNRIDES/feature/ongoing/model/lap_model.dart';
+import 'package:table_calendar/table_calendar.dart';
 
 class AttendanceController extends GetxController {
   // Observables
@@ -34,6 +35,10 @@ class AttendanceController extends GetxController {
   var isRunning = false.obs;
   Timer? _timer;
   var laps = <String>[].obs;
+
+  var calendarFormat = CalendarFormat.month.obs;
+
+  var enableEdit = false.obs;
 
   void recordLap() {
     final lapNumber = laps.length + 1;
@@ -141,9 +146,9 @@ class AttendanceController extends GetxController {
       );
 
       if (res.data['success']) {
+        printData("res.data['message'] ${res.data['message']}");
         showSuccess(res.data['message']);
-
-        fetchAttendance();
+        // fetchAttendance();
         clearStopwatchData();
       } else {
         showError(res.data['message']);
@@ -237,7 +242,7 @@ class AttendanceController extends GetxController {
       var bodyJson = {
         "attendanceStatus": updatedAttendance.attendanceStatus,
         "sessionDuration": updatedAttendance.sessionDuration,
-        "sessionCompletion": updatedAttendance.sessionCompletion,
+        "sessionCompletion": "Partial",
         "sessionDate": updatedAttendance.sessionDate,
         "totalSessions": updatedAttendance.totalSessions,
       };
@@ -246,6 +251,76 @@ class AttendanceController extends GetxController {
 
       final res = await api.put(
         "${EndPoints.attendance}/${updatedAttendance.id}",
+        data: bodyJson,
+      );
+
+      if (res.data['success']) {
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
+      }
+      printData(res);
+    } catch (e) {
+      printData(e);
+    } finally {
+      fetchAttendance();
+    }
+  }
+
+  /// Update session details
+  Future<void> updateSessionDetails(Attendance updatedAttendance) async {
+    try {
+      var bodyJson = {
+        "sessionNumber": updatedAttendance.sessionNumber,
+        "totalSessions": updatedAttendance.totalSessions,
+        "attendanceStatus": updatedAttendance.attendanceStatus,
+        "sessionDuration": updatedAttendance.sessionDuration,
+        "sessionCompletion": updatedAttendance.sessionCompletion,
+        "sessionsCompleted": updatedAttendance.sessionsCompleted,
+        "fullDaysDone": updatedAttendance.fullDaysDone,
+        "halfDaysDone": updatedAttendance.halfDaysDone,
+        "sessionsRemaining": updatedAttendance.sessionsRemaining,
+      };
+
+      printData(bodyJson);
+
+      final res = await api.put(
+        "${EndPoints.attendance}/${updatedAttendance.id}",
+        data: bodyJson,
+      );
+
+      if (res.data['success']) {
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
+      }
+      printData(res);
+    } catch (e) {
+      printData(e);
+    } finally {
+      fetchAttendance();
+    }
+  }
+
+  /// Update completed date details
+  Future<void> updateCompletedDate(
+    Attendance attendance,
+    DateTime day,
+    CompletedDate updatedEntry,
+  ) async {
+    try {
+      var bodyJson = {
+        "completedDateUpdate": {
+          "date": day.toIso8601String(),
+          "duration": updatedEntry.duration,
+          "status": updatedEntry.status,
+        },
+      };
+
+      printData(bodyJson);
+
+      final res = await api.put(
+        "${EndPoints.attendance}/${attendance.id}",
         data: bodyJson,
       );
 

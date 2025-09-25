@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:RUTSNRIDES/core/constant/const_data.dart';
 import 'package:RUTSNRIDES/core/services/api_service.dart';
 import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
@@ -16,6 +15,10 @@ class BookingController extends GetxController {
   var searchQuery = ''.obs;
   var sortBy = 'date'.obs;
   var api = ApiService();
+  var loadmarkCompleted = false.obs;
+
+  // Map to track loading states for individual bookings
+  var bookingLoadingStates = <String, bool>{}.obs;
 
   Future<void> loadLeads() async {
     try {
@@ -45,12 +48,48 @@ class BookingController extends GetxController {
 
   Future<void> deleteBooking(String s) async {
     try {
+      loadmarkCompleted(true);
       var res = await api.delete("${EndPoints.booking}/$s");
       printData(res);
     } catch (e) {
       printData(e);
     } finally {
       loadLeads();
+      loadmarkCompleted(false);
     }
+  }
+
+  Future<void> markCompleted(String bookingId) async {
+    try {
+      // Set loading state for this specific booking
+      bookingLoadingStates[bookingId] = true;
+
+      var res = await api.put("${EndPoints.mark_completed}/$bookingId");
+      printData(res);
+
+      if (res.data['success']) {
+        showSuccess(res.data['message']);
+      } else {
+        showError(res.data['message']);
+      }
+    } catch (e) {
+      printData(e);
+      Get.snackbar(
+        "Error",
+        e.toString(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      // Clear loading state for this specific booking
+      bookingLoadingStates[bookingId] = false;
+      loadLeads();
+    }
+  }
+
+  // Helper method to check if a specific booking is loading
+  bool isBookingLoading(String bookingId) {
+    return bookingLoadingStates[bookingId] ?? false;
   }
 }

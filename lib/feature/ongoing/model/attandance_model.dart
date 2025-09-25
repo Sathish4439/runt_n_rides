@@ -101,6 +101,51 @@ class Attendance {
     };
   }
 
+  /// Create a copy of this Attendance with updated fields
+  Attendance copyWith({
+    String? id,
+    String? bookingId,
+    String? riderName,
+    String? phoneNumber,
+    String? programBooked,
+    String? sessionDate,
+    int? sessionNumber,
+    int? totalSessions,
+    String? attendanceStatus,
+    String? sessionDuration,
+    String? sessionCompletion,
+    int? sessionsCompleted,
+    int? fullDaysDone,
+    int? halfDaysDone,
+    int? sessionsRemaining,
+    String? createdAt,
+    String? updatedAt,
+    Booking? bookingData,
+    List<CompletedDate>? completedDates,
+  }) {
+    return Attendance(
+      id: id ?? this.id,
+      bookingId: bookingId ?? this.bookingId,
+      riderName: riderName ?? this.riderName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      programBooked: programBooked ?? this.programBooked,
+      sessionDate: sessionDate ?? this.sessionDate,
+      sessionNumber: sessionNumber ?? this.sessionNumber,
+      totalSessions: totalSessions ?? this.totalSessions,
+      attendanceStatus: attendanceStatus ?? this.attendanceStatus,
+      sessionDuration: sessionDuration ?? this.sessionDuration,
+      sessionCompletion: sessionCompletion ?? this.sessionCompletion,
+      sessionsCompleted: sessionsCompleted ?? this.sessionsCompleted,
+      fullDaysDone: fullDaysDone ?? this.fullDaysDone,
+      halfDaysDone: halfDaysDone ?? this.halfDaysDone,
+      sessionsRemaining: sessionsRemaining ?? this.sessionsRemaining,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      bookingData: bookingData ?? this.bookingData,
+      completedDates: completedDates ?? this.completedDates,
+    );
+  }
+
   static final defaultData = Attendance(
     bookingId: "",
     riderName: "",
@@ -123,23 +168,19 @@ class Attendance {
 class CompletedDate {
   final String date;
   final String duration;
+  final String? status;
 
-  CompletedDate({
-    required this.date,
-    required this.duration,
-  });
+  CompletedDate({required this.date, this.status, required this.duration});
 
   factory CompletedDate.fromJson(Map<String, dynamic> json) {
     return CompletedDate(
       date: json["date"] ?? "",
       duration: json["duration"] ?? "",
+      status: json["status"],
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      "date": date,
-      "duration": duration,
-    };
+    return {"date": date, "duration": duration, "status": status};
   }
 }

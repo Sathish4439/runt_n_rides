@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:RUTSNRIDES/feature/enquiry/model/program_model.dart';
+import 'package:RUTSNRIDES/feature/ongoing/widget/ongoing_wid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -25,6 +26,24 @@ class EnquiryController extends GetxController {
   DateTime focusedDay = DateTime.now();
   DateTime? selectedDay;
   CalendarFormat calendarFormat = CalendarFormat.month;
+  void addDateWithSlot(DateTime date, String slot) {
+    plannedData.add(CompletedDate(date: date.toString(), duration: slot));
+  }
+
+  void removeDate(DateTime date) {
+    plannedData.removeWhere((d) {
+      final dDate = DateTime.parse(d.date); // if d.date is String
+      return dDate.year == date.year &&
+          dDate.month == date.month &&
+          dDate.day == date.day;
+    });
+
+    // Print remaining dates
+    print("Remaining planned dates:");
+    for (var d in plannedData) {
+      print(d.date);
+    }
+  }
 
   var paymentProof = "".obs;
 
@@ -39,12 +58,10 @@ class EnquiryController extends GetxController {
     printData(plannedData.toString());
   }
 
-  void removeDate(String date) {
-    plannedData.removeWhere((d) => d.date == date);
-  }
-
   // Text controllers
   final riderName = TextEditingController();
+  final addPhone = TextEditingController();
+  final email = TextEditingController();
   final age = TextEditingController();
   final parentName = TextEditingController();
   final phone = TextEditingController();
@@ -54,12 +71,17 @@ class EnquiryController extends GetxController {
   var height = TextEditingController();
   var weight = TextEditingController();
   var shirtSize = TextEditingController();
+  var courseFee = TextEditingController();
+  var gearrental = TextEditingController();
+  var accomodation = TextEditingController();
+  var bikerental = TextEditingController();
 
   final bookingDate = TextEditingController();
   final preferredSessionDate = TextEditingController();
   final totalFee = TextEditingController();
   final amtPaid = TextEditingController();
   final medicalCondition = TextEditingController();
+  final enquiryDate = TextEditingController();
   final isLoading = false.obs; // reactive variable
   final ImagePicker picker = ImagePicker();
 
@@ -108,8 +130,18 @@ class EnquiryController extends GetxController {
   void setBookingData(Booking booking) {
     findandSet(booking.programBooked);
 
-    printData(booking.totalFee);
-    printData(booking.totalPaid);
+    printData(booking.instagramProfile);
+    
+
+    courseFee.text = booking.courseFee;
+    bikerental.text = booking.bikeRentalPrice;
+    gearrental.text = booking.gearRentalPrice;
+    accomodation.text = booking.accomdationPrice;
+    addPhone.text = booking.additionalPhone ?? "";
+    email.text = booking.email ?? "";
+    enquiryDate.text = booking.enquiryDate;
+
+    bookingDate.text = booking.bookingDate;
 
     riderName.text = booking.riderName;
     age.text = booking.riderAge.toString();
@@ -124,8 +156,6 @@ class EnquiryController extends GetxController {
     shirtSize.text = booking.shirtSize;
     instagramProfile.text = booking.instagramProfile;
 
-    bookingDate.text = booking.bookingDate;
-    preferredSessionDate.text = booking.preferredSessionDate;
     totalFee.text = booking.totalFee.toString();
     amtPaid.text = booking.totalPaid.toString();
     medicalCondition.text = booking.medicalCondition; // or adjust field
@@ -133,7 +163,7 @@ class EnquiryController extends GetxController {
     trainingSlot.value = booking.trainingSlot;
     sessionType.value = booking.sessionType;
 
-    selectedBookingType.value = booking.bookingType;
+    // selectedBookingType.value = booking.bookingType;
     headSize.text = booking.headSize;
 
     plannedData.value = booking.plannedDate;
@@ -152,6 +182,17 @@ class EnquiryController extends GetxController {
     age.text = lead.age.toString();
     parentName.text = ""; // Not in Lead
     phone.text = lead.whatsapp;
+    final cleaned = lead.timestamp.split('GMT')[0].trim();
+    // -> "Thu Sep 18 2025 12:15:04"
+
+    // 2️⃣ Parse using intl
+    final parsedDate = DateFormat("EEE MMM dd yyyy HH:mm:ss").parse(cleaned);
+
+    // 3️⃣ Format to your desired style
+    final formattedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
+
+    // 4️⃣ Assign to controller
+    enquiryDate.text = formattedDate;
 
     programDetails.text = "";
     preferredSessionDate.text = "";
@@ -370,6 +411,10 @@ class EnquiryController extends GetxController {
 
       final data = bookingData.toJson();
       data.remove("_id");
+
+      // ✅ Attach enquiryId
+      data['enquiryId'] = enquiryId;
+
       var bookingRes = await api.post(EndPoints.createBooking, data: data);
 
       if (bookingRes.data['success']) {
@@ -421,7 +466,7 @@ class EnquiryController extends GetxController {
     } finally {
       loadSubmit.value = false;
       clearBookingForm();
-      Get.back();
+
       loadEnquirey();
     }
   }
@@ -522,32 +567,38 @@ class EnquiryController extends GetxController {
     preferredSessionDate.clear();
     totalFee.clear();
     amtPaid.clear();
-
-    // Reset dropdown values
-    selectedProgram.value = TrainingProgram.nullTrainingProgram;
-    paymentProof.value = "";
-    trainingSlot.value = "";
-    sessionType.value = "";
-    paymentStatus.value = "";
-    paymentMode.value = "";
-    selectedBookingType.value = "";
-
-    // Reset checkboxes
-    bikeRental.value = false;
-    gearRental.value = false;
-
-    paymentProof.value = "";
-    // Reset loading
-    isLoading.value = false;
     pantSize.clear();
     headSize.clear();
     shirtSize.clear();
     height.clear();
     weight.clear();
     instagramProfile.clear();
+    addPhone.clear();
+    email.clear();
+    enquiryDate.clear();
+    courseFee.clear();
+    bikerental.clear();
+    gearrental.clear();
+    accomodation.clear();
+
+    // Reset dropdowns / selects
+    selectedProgram.value = TrainingProgram.nullTrainingProgram;
+    trainingSlot.value = '';
+    sessionType.value = '';
+    paymentStatus.value = '';
+    paymentMode.value = '';
+    selectedBookingType.value = '';
+    paymentProof.value = '';
+
+    // Reset checkboxes
+    bikeRental.value = false;
+    gearRental.value = false;
+    accomdation.value = false;
+
+    // Reset loading
+    isLoading.value = false;
   }
 
-  // ✅ Dispose controllers when widget/controller is destroyed
   @override
   void onClose() {
     // Dispose all TextEditingControllers
@@ -595,6 +646,8 @@ class EnquiryController extends GetxController {
       data.remove("_id"); // ✅ prevent ObjectId cast error
 
       var res = await api.put("${EndPoints.booking}/$id", data: data);
+
+      printData("response data ${res}");
 
       if (res.data['success']) {
         showSuccess(res.data['message']);

@@ -1,5 +1,6 @@
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/enquiry/view/confrim_booking_page.dart';
+import 'package:RUTSNRIDES/feature/ongoing/model/attandance_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/core/common_wid/widget.dart';
@@ -96,6 +97,14 @@ class BookingBottomSheet extends StatelessWidget {
 
 Booking bookingFromLead(Lead lead) {
   return Booking(
+    additionalPhone: "",
+    enquiryDate: "",
+    courseFee: "",
+    accomdationPrice: "",
+    bikeRentalPrice: "",
+    gearRentalPrice: "",
+    email: "",
+
     id: "",
     timestamp: lead.timestamp, // keep same timestamp
     riderName: lead.fullName,
@@ -111,7 +120,7 @@ Booking bookingFromLead(Lead lead) {
     headSize: "",
     pantSize: "",
     shirtSize: "", // can reformat if needed
-    preferredSessionDate: "", // if empty → stays empty
+    // if empty → stays empty
     trainingSlot: "",
     sessionType: "",
     bikeRental: lead.bikeRental,
@@ -372,10 +381,7 @@ Widget buildBookingCard(
   BuildContext context,
   BookingController controller,
 ) {
-  final status = getBookingStatus(booking);
-  final outstanding = booking.totalFee - booking.totalPaid;
   final bookingDate = parseDate(booking.bookingDate);
-  final sessionDate = parseDate(booking.preferredSessionDate);
 
   return Card(
     color: Colors.white,
@@ -389,30 +395,49 @@ Widget buildBookingCard(
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                booking.riderName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
               Row(
                 children: [
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => FullScreenImagePage(
-                            imageUrl:
-                                "${EndPoints.fetch}/${booking.payment.last.paymentProof}",
-                          ),
-                        ),
-                      );
-                    },
-                    icon: Icon(Icons.image),
+                  Text(
+                    booking.riderName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    message:
+                        'This person completed all sessions but not paid the full amount',
+                    child: Icon(
+                      Icons.info,
+                      color: Colors.orange.shade400,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+
+              Row(
+                children: [
+                  Visibility(
+                    visible: booking.bookingStatus == "Completed",
+                    child: Icon(Icons.done),
+                  ),
+                  // IconButton(
+                  //   onPressed: () {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (_) => FullScreenImagePage(
+                  //           imageUrl:
+                  //               "${EndPoints.fetch}/${booking.payment.last.paymentProof}",
+                  //         ),
+                  //       ),
+                  //     );
+                  //   },
+                  //   icon: Icon(Icons.image),
+                  // ),
                   IconButton(
                     onPressed: () {
                       Get.to(
@@ -473,32 +498,29 @@ Widget buildBookingCard(
             ),
             if (booking.programDetails.isNotEmpty)
               Text(
-                booking.programDetails,
+                "Program Details: " + booking.programDetails,
                 style: TextStyle(color: Colors.grey[700], fontSize: 14),
               ),
             const SizedBox(height: 8),
           ],
 
           // Date and Session Info
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              buildInfoChip(
-                Icons.calendar_today,
-                controller.dateFormat.format(bookingDate),
-              ),
-              buildInfoChip(
-                Icons.event,
-                controller.dateFormat.format(sessionDate),
-              ),
-              buildInfoChip(Icons.access_time, booking.trainingSlot),
-              if (booking.sessionType.isNotEmpty)
-                buildInfoChip(Icons.category, booking.sessionType),
-            ],
-          ),
+          // Wrap(
+          //   spacing: 8,
+          //   runSpacing: 4,
+          //   children: [
+          //     buildInfoChip(
+          //       Icons.calendar_today,
+          //       controller.dateFormat.format(bookingDate),
+          //     ),
 
-          const SizedBox(height: 12),
+          //     buildInfoChip(Icons.access_time, booking.trainingSlot),
+          //     if (booking.sessionType.isNotEmpty)
+          //       buildInfoChip(Icons.category, booking.sessionType),
+          //   ],
+          // ),
+
+          // const SizedBox(height: 12),
 
           // Payment Information
           Column(
@@ -543,42 +565,42 @@ Widget buildBookingCard(
               //   ],
               // ),
               const SizedBox(height: 4),
-              if (booking.payment.isNotEmpty)
-                Text(
-                  'Payment Status: ${booking.payment.last.paymentStatus}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
+              // if (booking.payment.isNotEmpty)
+              //   Text(
+              //     'Payment Status: ${booking.payment.last.paymentStatus}',
+              //     style: TextStyle(
+              //       fontSize: 12,
+              //       fontWeight: FontWeight.bold,
+              //       color: Colors.red,
+              //       fontStyle: FontStyle.italic,
+              //     ),
+              //   ),
             ],
           ),
 
-          const SizedBox(height: 12),
+          //   const SizedBox(height: 12),
 
           // Action Buttons
-          if (outstanding > 0 && status != 'PAID')
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () =>
-                    addPaymentToBooking(booking, context, controller),
-                child: const Text('Add Payment'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700],
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ),
-
+          // if (outstanding > 0 && status != 'PAID')
+          //   SizedBox(
+          //     width: double.infinity,
+          //     child: ElevatedButton(
+          //       onPressed: () =>
+          //           addPaymentToBooking(booking, context, controller),
+          //       child: const Text('Add Payment'),
+          //       style: ElevatedButton.styleFrom(
+          //         backgroundColor: Colors.green[700],
+          //         foregroundColor: Colors.white,
+          //       ),
+          //     ),
+          //   ),
           const SizedBox(height: 8),
 
           // Rental Information
           if (booking.bikeRental.isNotEmpty || booking.gearRental.isNotEmpty)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Divider(),
                 const SizedBox(height: 8),
@@ -587,18 +609,67 @@ Widget buildBookingCard(
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Bike: ${booking.bikeRental}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    _buildRentalItem(
+                      'Bike Rental',
+                      booking.bikeRental,
+                      booking.bikeRentalPrice,
+                      2500,
                     ),
-                    Text(
-                      'Gear: ${booking.gearRental}',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    const SizedBox(height: 4),
+                    _buildRentalItem(
+                      'Gear Rental',
+                      booking.gearRental,
+                      booking.gearRentalPrice,
+                      1000,
+                    ),
+                    const SizedBox(height: 4),
+                    _buildRentalItem(
+                      'Accommodation',
+                      booking.accomdation,
+                      booking.accomdationPrice,
+                      700,
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+
+                // Attendance Information
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Training Progress:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    //  _buildAttendanceInfo(booking.attendanceDetails),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                Obx(
+                  () => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Visibility(
+                      visible:
+                          booking.bookingStatus.toLowerCase() != "completed",
+                      child: CommonButton(
+                        isLoading: controller.isBookingLoading(booking.id!),
+                        text: "complete",
+                        onTap: () async {
+                          await controller.markCompleted(booking.id!);
+                        },
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -762,6 +833,107 @@ Widget _buildTextField(
 
         return null;
       },
+    ),
+  );
+}
+
+double _calculateRemainingAmount(Booking booking) {
+  final totalFee = double.tryParse(booking.totalFee.toString()) ?? 0;
+  final amtPaid = double.tryParse(booking.totalPaid.toString()) ?? 0;
+  return totalFee - amtPaid;
+}
+
+Widget _buildProgressItem(String label, String value, Color color) {
+  return Column(
+    children: [
+      Text(
+        value,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+      Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+    ],
+  );
+}
+
+Color _getStatusColor(String status) {
+  switch (status.toLowerCase()) {
+    case 'completed':
+      return Colors.green;
+    case 'partial':
+      return Colors.orange;
+    case 'not started':
+      return Colors.grey;
+    default:
+      return Colors.blue;
+  }
+}
+
+Widget _buildRentalItem(
+  String title,
+  String status,
+  String days,
+  int pricePerDay,
+) {
+  final isEnabled = status.toLowerCase() == 'yes';
+  final daysCount = double.tryParse(days) ?? 0;
+  final totalPrice = daysCount * pricePerDay;
+
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+    decoration: BoxDecoration(
+      color: isEnabled ? Colors.green[50] : Colors.grey[100],
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(
+        color: isEnabled ? Colors.green[200]! : Colors.grey[300]!,
+        width: 1,
+      ),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                  color: isEnabled ? Colors.green[700] : Colors.grey[600],
+                ),
+              ),
+              if (isEnabled)
+                Text(
+                  '$days days',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
+            ],
+          ),
+        ),
+        if (isEnabled)
+          Text(
+            '₹${totalPrice.toStringAsFixed(0)}',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: Colors.green[700],
+            ),
+          )
+        else
+          Text(
+            'Not Selected',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+      ],
     ),
   );
 }

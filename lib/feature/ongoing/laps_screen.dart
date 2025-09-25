@@ -51,6 +51,8 @@ class _LapsScreenState extends State<LapsScreen> {
 
             const SizedBox(height: 40),
 
+            Text("Rider Name: " + widget.attendance.riderName),
+            const SizedBox(height: 20),
             // Control Buttons
             _buildControlButtons(),
 

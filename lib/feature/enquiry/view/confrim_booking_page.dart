@@ -3,6 +3,7 @@ import 'package:RUTSNRIDES/core/services/endpoint.dart';
 import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:RUTSNRIDES/feature/enquiry/model/program_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:RUTSNRIDES/feature/booking/model/booking_model.dart';
 import 'package:RUTSNRIDES/feature/enquiry/controller/enquiry_controller.dart';
@@ -37,6 +38,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
     controller.clearBookingForm();
   }
 
+  @override
   void initState() {
     super.initState(); // ✅ always call super first
 
@@ -48,6 +50,14 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
         controller.setEnquiryData(widget.enquirydata!);
       } else if (widget.bookingData != null) {
         controller.setBookingData(widget.bookingData!);
+
+        printData(controller.courseFee.text);
+        printData(controller.bikerental.text);
+        printData(controller.gearrental.text);
+        printData(controller.accomodation.text);
+        printData(controller.totalFee.text);
+        printData(controller.amtPaid.text);
+        printData(controller.paymentStatus.value);
       }
     } catch (e, s) {
       debugPrint("❌ initState error: $e\n$s");
@@ -121,6 +131,16 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 keyboard: TextInputType.phone,
                 isRequired: true,
               ),
+              _buildTextField(
+                "Additional Phone",
+                controller.addPhone,
+                keyboard: TextInputType.phone,
+              ),
+              _buildTextField(
+                "Email",
+                controller.email,
+                keyboard: TextInputType.emailAddress,
+              ),
 
               SizedBox(height: 24),
 
@@ -128,20 +148,24 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
               _buildSectionHeader("Program Details"),
 
               _buildProgramSelection(),
-              _buildTextField("Program Details", controller.programDetails),
-              _buildSectionHeader("Medical Condition"),
-              _buildTextField("", controller.medicalCondition),
+              _buildTextField(
+                "Program Details",
+                controller.programDetails,
+                maxLines: 4,
+              ),
 
               SizedBox(height: 24),
 
               // Date & Time Section
               _buildSectionHeader("Schedule"),
-              _buildDatePicker("Booking Date", controller.bookingDate, context),
-              _buildDatePicker(
-                "Preferred Session Date",
-                controller.preferredSessionDate,
-                context,
+              _buildTextField(
+                "Enquiry Date",
+                controller.enquiryDate,
+                maxLines: 1,
+                readOnly: true,
               ),
+              _buildDatePicker("Booking Date", controller.bookingDate, context),
+
               Obx(() {
                 final program = controller.selectedProgram.value;
                 return _buildDropdown(
@@ -161,7 +185,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 ),
               ),
 
-              SizedBox(height: 24),
+              //  SizedBox(height: 24),
 
               // Rental Options Section
               _buildSectionHeader("Rental Options"),
@@ -183,52 +207,27 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                         IconButton(
                           onPressed: () async {
                             // Check each field individually and collect empty fields
-                            List<String> emptyFields = [];
 
-                            if (controller.amtPaid.text.isEmpty) {
-                              emptyFields.add("Amount Paid");
-                            }
-                            if (controller.paymentStatus.value.isEmpty) {
-                              emptyFields.add("Payment Status");
-                            }
-                            if (controller.paymentProof.value.isEmpty) {
-                              emptyFields.add("Payment Proof");
-                            }
-                            if (controller.paymentMode.value.isEmpty) {
-                              emptyFields.add("Payment Mode");
-                            }
+                            PaymentDetails payment = PaymentDetails(
+                              receivedAmount:
+                                  double.tryParse(
+                                    controller.amtPaid.text.trim(),
+                                  ) ??
+                                  0.0,
+                              paymentStatus: controller.paymentStatus.value,
+                              paymentMode: controller.paymentMode.value,
+                              paymentProof: controller.paymentProof.value,
+                            );
 
-                            // Print empty fields if any
-                            if (emptyFields.isNotEmpty) {
-                              showError(
-                                "These fields are empty: ${emptyFields.join(", ")}",
+                            if (widget.bookingData != null) {
+                              await controller.updatePaymentDetails(
+                                widget.bookingData!.id,
+                                payment,
                               );
-                            }
-
-                            if (controller.amtPaid.text.isNotEmpty &&
-                                controller.paymentStatus.value.isNotEmpty &&
-                                controller.paymentProof.value.isNotEmpty &&
-                                controller.paymentMode.value.isNotEmpty) {
-                              PaymentDetails payment = PaymentDetails(
-                                receivedAmount:
-                                    double.tryParse(
-                                      controller.amtPaid.text.trim(),
-                                    ) ??
-                                    0.0,
-                                paymentStatus: controller.paymentStatus.value,
-                                paymentMode: controller.paymentMode.value,
-                                paymentProof: controller.paymentProof.value,
-                              );
-
-                              if (widget.bookingData != null) {
-                                await controller.updatePaymentDetails(
-                                  widget.bookingData!.id,
-                                  payment,
-                                );
-                                Get.back();
-                              }
+                              Get.back();
                             }
                           },
+
                           icon: Icon(Icons.done),
                         ),
                         IconButton(
@@ -255,16 +254,163 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
               Column(
                 children: [
                   _buildTextField(
+                    "Course fee",
+
+                    controller.courseFee,
+                    keyboard: TextInputType.number,
+                    onEditingComplete: () {
+                      controller.totalFee.text =
+                          ((double.tryParse(controller.courseFee.text) ?? 0.0) +
+                                  (double.tryParse(
+                                            controller.bikerental.text,
+                                          ) ??
+                                          0.0) *
+                                      2500 +
+                                  (double.tryParse(
+                                            controller.gearrental.text,
+                                          ) ??
+                                          0.0) *
+                                      1000 +
+                                  (double.tryParse(
+                                            controller.accomodation.text,
+                                          ) ??
+                                          0.0) *
+                                      700)
+                              .toStringAsFixed(2);
+                    },
+                  ),
+                  Obx(
+                    () => Visibility(
+                      visible: controller.bikeRental.value || controller.gearRental.value || controller.accomdation.value,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [Text("Rental"), Text("Days")],
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 10),
+                  Obx(
+                    () => Visibility(
+                      visible: controller.bikeRental.value,
+                      child: _buildTextField(
+                        "Bike rental  (₹ 2500)",
+                        controller.bikerental,
+                        keyboard: TextInputType.number,
+                        isBooking: true,
+                        onEditingComplete: () {
+                          // Calculate bike rental total (quantity * 2500)
+                          final bikeQuantity =
+                              double.tryParse(controller.bikerental.text) ??
+                              0.0;
+                          final bikeTotal = bikeQuantity * 2500;
+
+                          controller.totalFee.text =
+                              ((double.tryParse(controller.courseFee.text) ??
+                                          0.0) +
+                                      bikeTotal +
+                                      (double.tryParse(
+                                                controller.gearrental.text,
+                                              ) ??
+                                              0.0) *
+                                          1000 +
+                                      (double.tryParse(
+                                                controller.accomodation.text,
+                                              ) ??
+                                              0.0) *
+                                          700)
+                                  .toStringAsFixed(2);
+                        },
+                      ),
+                    ),
+                  ),
+                  Obx(
+                    () => Visibility(
+                      visible: controller.gearRental.value,
+                      child: _buildTextField(
+                        "Gear rental  (₹ 1000)",
+                        controller.gearrental,
+                        keyboard: TextInputType.number,
+                        isBooking: true,
+                        onEditingComplete: () {
+                          // Calculate gear rental total (quantity * 1000)
+                          final gearQuantity =
+                              double.tryParse(controller.gearrental.text) ??
+                              0.0;
+                          final gearTotal = gearQuantity * 1000;
+
+                          controller.totalFee.text =
+                              ((double.tryParse(controller.courseFee.text) ??
+                                          0.0) +
+                                      (double.tryParse(
+                                                controller.bikerental.text,
+                                              ) ??
+                                              0.0) *
+                                          2500 +
+                                      gearTotal +
+                                      (double.tryParse(
+                                                controller.accomodation.text,
+                                              ) ??
+                                              0.0) *
+                                          700)
+                                  .toStringAsFixed(2);
+                        },
+                      ),
+                    ),
+                  ),
+
+                  Obx(
+                    () => Visibility(
+                      visible: controller.accomdation.value,
+                      child: _buildTextField(
+                        "Accomodation  (₹ 700)",
+                        controller.accomodation,
+                        keyboard: TextInputType.number,
+                        isBooking: true,
+                        onEditingComplete: () {
+                          // Calculate accommodation total (quantity * 700)
+                          final accommodationQuantity =
+                              double.tryParse(controller.accomodation.text) ??
+                              0.0;
+                          final accommodationTotal =
+                              accommodationQuantity * 700;
+
+                          controller.totalFee.text =
+                              ((double.tryParse(controller.courseFee.text) ??
+                                          0.0) +
+                                      (double.tryParse(
+                                                controller.bikerental.text,
+                                              ) ??
+                                              0.0) *
+                                          2500 +
+                                      (double.tryParse(
+                                                controller.gearrental.text,
+                                              ) ??
+                                              0.0) *
+                                          1000 +
+                                      accommodationTotal)
+                                  .toStringAsFixed(2);
+                        },
+                      ),
+                    ),
+                  ),
+
+                  _buildTextField(
                     "Total Fee (₹)",
                     controller.totalFee,
+
                     keyboard: TextInputType.number,
                     isRequired: true,
                     readOnly: widget.attendance != null ? true : false,
                   ),
                   _buildTextField(
-                    "Advance Paid Amount (₹)",
+                    widget.bookingData != null
+                        ? "Entered Amount (₹)"
+                        : "Advance Paid Amount (₹)",
+
                     controller.amtPaid,
                     keyboard: TextInputType.number,
+                  
                   ),
                   // _buildTextField(
                   //   "Received Amount  (₹)",
@@ -277,16 +423,34 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                     controller.paymentStatuses,
                     controller.paymentStatus,
                   ),
-                  _buildDropdown(
-                    "Payment Mode",
-                    controller.paymentMethod,
-                    controller.paymentMode,
+                  Obx(
+                    () => Visibility(
+                      visible: controller.paymentStatus.value != "Pending",
+                      child: Column(
+                        children: [
+                          _buildDropdown(
+                            "Payment Mode",
+                            controller.paymentMethod,
+                            controller.paymentMode,
+                          ),
+                          Obx(
+                            () => Visibility(
+                              visible: controller.paymentMode.value != "Cash",
+                              child: Column(
+                                children: [
+                                  ImagePickerWidget(controller: controller),
+                                  SizedBox(height: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-
-                  ImagePickerWidget(controller: controller),
                 ],
               ),
-              SizedBox(height: 20),
+
               _buildDropdown(
                 "Booking Type",
                 controller.bookingType,
@@ -321,190 +485,32 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                 keyboard: TextInputType.number,
               ),
               _buildTextField("Instagram Profile", controller.instagramProfile),
+              _buildSectionHeader("Medical Condition"),
+              _buildTextField("", controller.medicalCondition, maxLines: 4),
 
               Visibility(
                 visible: widget.from == "booking",
-                child: CommonButton(
-                  text: "Update Booking Data",
-                  onTap: () async {
-                    if (widget.from == "booking" &&
-                        widget.bookingData != null) {
-                      final booking = Booking(
-                        payment: [
-                          PaymentDetails(
-                            receivedAmount: double.parse(
-                              controller.amtPaid.text,
-                            ),
-                            paymentStatus: controller.paymentStatus.value,
-                            paymentMode: controller.paymentMode.value,
-                            paymentProof: controller.paymentProof.value,
-                          ),
-                        ],
-                        id: "",
-                        accomdation: controller.accomdation.value == true
-                            ? "yes"
-                            : "no",
-                        plannedDate: controller.plannedData,
-
-                        timestamp: DateTime.now().millisecondsSinceEpoch
-                            .toString(),
-                        riderName: controller.riderName.text,
-                        medicalCondition: controller.medicalCondition.text,
-                        phone: controller.phone.text,
-                        programBooked:
-                            controller.selectedProgram.value.title ?? "",
-                        programDetails: controller.programDetails.text,
-                        bookingDate: controller.bookingDate.text,
-                        preferredSessionDate:
-                            controller.preferredSessionDate.text,
-                        trainingSlot: controller.trainingSlot.value,
-                        sessionType: controller.sessionType.value,
-                        headSize: controller.headSize.text,
-                        pantSize: controller.pantSize.text,
-                        shirtSize: controller.shirtSize.text,
-                        height: controller.height.text,
-                        instagramProfile: controller.instagramProfile.text,
-                        weight: controller.weight.text,
-                        bikeRental: controller.bikeRental.value ? "Yes" : "No",
-                        gearRental: controller.gearRental.value ? "Yes" : "No",
-                        totalFee:
-                            double.tryParse(controller.totalFee.text) ?? 0.0,
-
-                        totalPaid:
-                            double.tryParse(controller.amtPaid.text) ?? 0.0,
-
-                        riderAge: int.tryParse(controller.age.text) ?? 0,
-                        parentName: controller.parentName.text,
-                        bookingType: controller.selectedBookingType.value,
-
-                        bookingStatus: controller.bookingStatus.value,
-                      );
-
-                      if (widget.bookingData != null) {
-                        await controller.updateBooking(
-                          widget.bookingData!.id,
-                          booking,
-                        );
-                        Get.back();
-                      }
-                    }
-                  },
+                child: Obx(
+                  () => CommonButton(
+                    isLoading: controller.isLoading.value,
+                    text: "Update Booking Data",
+                    onTap: () async {
+                      await _updateBookingData();
+                    },
+                  ),
                 ),
               ),
+
               Visibility(
                 visible: widget.from == "attendance",
-                child: CommonButton(
-                  text: "Complete Booking",
-                  onTap: () async {
-                    if (validateData()) {
-                      if ((_formKey.currentState != null &&
-                              _formKey.currentState!.validate()) &&
-                          widget.attendance != null &&
-                          widget.bookingData != null) {
-                        final booking = Booking(
-                          id: "",
-                          accomdation: controller.accomdation.value == true
-                              ? "yes"
-                              : "no",
-                          plannedDate: controller.plannedData,
-                          payment: [
-                            PaymentDetails(
-                              receivedAmount: double.parse(
-                                controller.amtPaid.text,
-                              ),
-                              paymentStatus: controller.paymentStatus.value,
-                              paymentMode: controller.paymentMode.value,
-                              paymentProof: controller.paymentProof.value,
-                            ),
-                          ],
-                          timestamp: DateTime.now().millisecondsSinceEpoch
-                              .toString(),
-                          riderName: controller.riderName.text,
-                          medicalCondition: controller.medicalCondition.text,
-                          phone: controller.phone.text,
-                          programBooked:
-                              controller.selectedProgram.value.title ?? "",
-                          programDetails: controller.programDetails.text,
-                          bookingDate: controller.bookingDate.text,
-                          preferredSessionDate:
-                              controller.preferredSessionDate.text,
-                          trainingSlot: controller.trainingSlot.value,
-                          sessionType: controller.sessionType.value,
-                          headSize: controller.headSize.text,
-                          pantSize: controller.pantSize.text,
-                          shirtSize: controller.shirtSize.text,
-                          height: controller.height.text,
-                          instagramProfile: controller.instagramProfile.text,
-                          weight: controller.weight.text,
-                          bikeRental: controller.bikeRental.value
-                              ? "Yes"
-                              : "No",
-                          gearRental: controller.gearRental.value
-                              ? "Yes"
-                              : "No",
-                          totalFee:
-                              double.tryParse(controller.totalFee.text) ?? 0.0,
-
-                          totalPaid:
-                              double.tryParse(controller.amtPaid.text) ?? 0.0,
-
-                          riderAge: int.tryParse(controller.age.text) ?? 0,
-                          parentName: controller.parentName.text,
-                          bookingType: controller.selectedBookingType.value,
-
-                          bookingStatus: controller.bookingStatus.value,
-                        );
-
-                        if (widget.bookingData != null) {
-                          await controller.updateBooking(
-                            widget.bookingData!.id,
-                            booking,
-                          );
-                          Get.back();
-                        }
-
-                        final attendance = Attendance(
-                          id: widget.attendance!.id,
-                          bookingId: booking.id.toString(),
-                          createdAt: widget.attendance!.createdAt,
-                          // clone all completed dates instead of reusing reference
-                          completedDates: widget.attendance!.completedDates
-                              .map(
-                                (d) => CompletedDate(
-                                  date: d.date,
-                                  duration: d.duration,
-                                ),
-                              )
-                              .toList(),
-                          updatedAt: DateTime.now().toIso8601String(),
-                          riderName: widget.attendance!.riderName,
-                          phoneNumber: widget.attendance!.phoneNumber,
-                          programBooked: widget.attendance!.programBooked,
-                          sessionDate: widget.attendance!.sessionDate,
-                          sessionNumber: widget.attendance!.sessionNumber,
-                          totalSessions: widget.attendance!.totalSessions,
-                          attendanceStatus: widget.attendance!.attendanceStatus,
-                          sessionDuration: widget.attendance!.sessionDuration,
-                          sessionCompletion: "Completed",
-                          sessionsCompleted:
-                              widget.attendance!.sessionsCompleted,
-                          fullDaysDone: widget.attendance!.fullDaysDone,
-                          halfDaysDone: widget.attendance!.halfDaysDone,
-                          sessionsRemaining:
-                              widget.attendance!.sessionsRemaining,
-                        );
-
-                        if (widget.attendance != null &&
-                            widget.bookingData != null) {
-                          await controller.updateAttendance(
-                            widget.attendance!.id,
-                            attendance,
-                          );
-                          Get.back();
-                        }
-                      }
-                    }
-                  },
+                child: Obx(
+                  () => CommonButton(
+                    isLoading: controller.isLoading.value,
+                    text: "Complete Booking",
+                    onTap: () async {
+                      await _completeBookingWithAttendance();
+                    },
+                  ),
                 ),
               ),
 
@@ -547,6 +553,16 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                     _formKey.currentState!.validate())) {
                                   // Create booking data and submit
                                   final booking = Booking(
+                                    instagramProfile:
+                                        controller.instagramProfile.text,
+                                    courseFee: controller.courseFee.text,
+                                    bikeRentalPrice: controller.bikerental.text,
+                                    gearRentalPrice: controller.gearrental.text,
+                                    accomdationPrice:
+                                        controller.accomodation.text,
+                                    enquiryDate: controller.enquiryDate.text,
+                                    email: controller.email.text,
+                                    additionalPhone: controller.addPhone.text,
                                     id: "",
                                     accomdation:
                                         controller.accomdation.value == true
@@ -585,8 +601,7 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                     programDetails:
                                         controller.programDetails.text,
                                     bookingDate: controller.bookingDate.text,
-                                    preferredSessionDate:
-                                        controller.preferredSessionDate.text,
+
                                     trainingSlot: controller.trainingSlot.value,
                                     sessionType: controller.sessionType.value,
                                     headSize: controller.headSize.text,
@@ -595,8 +610,6 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                     height: controller.height.text,
                                     weight: controller.weight.text,
 
-                                    instagramProfile:
-                                        controller.instagramProfile.text,
                                     bikeRental: controller.bikeRental.value
                                         ? "Yes"
                                         : "No",
@@ -649,13 +662,16 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
                                   );
 
                                   if (widget.enquirydata != null) {
+                                    printData(widget.enquirydata!.id);
                                     await controller.submitBookingAndAttendance(
                                       booking,
                                       attendance,
                                       widget.enquirydata!.id,
                                     );
 
-                                    Get.back();
+                                    // if (context.mounted) {
+                                    //   Navigator.pop(context);
+                                    // }
                                   } else {}
                                 }
                               }
@@ -762,42 +778,81 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
     bool isRequired = false,
     int maxLines = 1,
     bool readOnly = false,
+    bool isBooking = false,
+    String? hintText,
+    VoidCallback? onEditingComplete,
+    ValueChanged<String>? onFieldSubmitted,
   }) {
+    // Determine if the field is a phone field
+    final isPhoneField = label.toLowerCase().contains("phone");
+
+    final textFormField = TextFormField(
+      controller: ctrl,
+      readOnly: readOnly,
+    
+      keyboardType: isPhoneField ? TextInputType.phone : keyboard,
+      maxLines: maxLines,
+      textAlign: isBooking ? TextAlign.center : TextAlign.start,
+      inputFormatters: isPhoneField
+          ? [
+              FilteringTextInputFormatter.digitsOnly, // Only digits
+              LengthLimitingTextInputFormatter(10), // Max 10 digits
+            ]
+          : [],
+      decoration: InputDecoration(
+        labelText: isBooking
+            ? null
+            : '$label${isRequired ? ' *' : ''}', // hide label if booking
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+        filled: true,
+        fillColor: Colors.grey[50],
+      ),
+      validator: (value) {
+        if (isRequired && (value == null || value.isEmpty)) {
+          return 'This field is required';
+        }
+
+        // Age validation
+        if (label == "Rider Age" && value != null && value.isNotEmpty) {
+          if (int.tryParse(value) == null) {
+            return 'Please enter a valid number';
+          }
+
+          final age = int.parse(value);
+          if (age < 5 || age > 80) {
+            return 'Age must be between 5 and 80';
+          }
+        }
+
+        // Phone validation
+        if (isPhoneField && value != null && value.isNotEmpty) {
+          if (value.length != 10) {
+            return 'Phone number must be 10 digits';
+          }
+        }
+
+        return null;
+      },
+      onEditingComplete: onEditingComplete,
+      onFieldSubmitted: onFieldSubmitted,
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: TextFormField(
-        controller: ctrl,
-        readOnly: readOnly,
-        keyboardType: keyboard,
-        maxLines: maxLines,
-        decoration: InputDecoration(
-          labelText: '$label${isRequired ? ' *' : ''}',
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
-          filled: true,
-          fillColor: Colors.grey[50],
-        ),
-        validator: (value) {
-          if (isRequired && (value == null || value.isEmpty)) {
-            return 'This field is required';
-          }
+      child: isBooking
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "$label${isRequired ? ' *' : ''}",
+                  style: const TextStyle(fontSize: 16),
+                ),
 
-          // Special validation for age field
-          if (label == "Rider Age" && value != null && value.isNotEmpty) {
-            // Check if it's a valid number
-            if (int.tryParse(value) == null) {
-              return 'Please enter a valid number';
-            }
-
-            // Check age requirement
-            final age = int.parse(value);
-            if (age < 5 || age > 80) {
-              return 'Age must be between 5 and 80';
-            }
-          }
-
-          return null;
-        },
-      ),
+                SizedBox(height: 50, width: 60, child: textFormField),
+              ],
+            )
+          : textFormField,
     );
   }
 
@@ -936,5 +991,206 @@ class _ConfirmBookingPageState extends State<ConfirmBookingPage> {
         ],
       ),
     );
+  }
+
+  /// Update booking data - handles booking update with proper validation and loading
+  Future<void> _updateBookingData() async {
+    printData(
+      "controller.instagramProfile.text ${controller.instagramProfile.text}",
+    );
+    try {
+      // Validate form data first
+      if (!validateData()) {
+        showError("Please fill all required fields");
+        return;
+      }
+
+      if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
+        showError("Please correct the form errors");
+        return;
+      }
+
+      if (widget.bookingData == null) {
+        showError("Missing booking data");
+        return;
+      }
+
+      // Set loading state
+      controller.isLoading.value = true;
+
+      // Create updated booking with correct ID
+      final booking = Booking(
+        payment: [
+          PaymentDetails(
+            receivedAmount: double.tryParse(controller.amtPaid.text) ?? 0.0,
+            paymentStatus: controller.paymentStatus.value,
+            paymentMode: controller.paymentMode.value,
+            paymentProof: controller.paymentProof.value,
+          ),
+        ],
+        id: widget.bookingData!.id, // Use existing booking ID
+        accomdation: controller.accomdation.value ? "yes" : "no",
+        plannedDate: controller.plannedData,
+        courseFee: controller.courseFee.text,
+        bikeRentalPrice: controller.bikerental.text,
+        gearRentalPrice: controller.gearrental.text,
+        accomdationPrice: controller.accomodation.text,
+        email: controller.email.text,
+        additionalPhone: controller.addPhone.text,
+        enquiryDate: controller.enquiryDate.text,
+        timestamp: DateTime.now().millisecondsSinceEpoch.toString(),
+        riderName: controller.riderName.text,
+        medicalCondition: controller.medicalCondition.text,
+        phone: controller.phone.text,
+        programBooked: controller.selectedProgram.value.title ?? "",
+        programDetails: controller.programDetails.text,
+        bookingDate: controller.bookingDate.text,
+        trainingSlot: controller.trainingSlot.value,
+        sessionType: controller.sessionType.value,
+        headSize: controller.headSize.text,
+        pantSize: controller.pantSize.text,
+        shirtSize: controller.shirtSize.text,
+        height: controller.height.text,
+        instagramProfile: controller.instagramProfile.text,
+        weight: controller.weight.text,
+        bikeRental: controller.bikeRental.value ? "Yes" : "No",
+        gearRental: controller.gearRental.value ? "Yes" : "No",
+        totalFee: double.tryParse(controller.totalFee.text) ?? 0.0,
+        totalPaid: double.tryParse(controller.amtPaid.text) ?? 0.0,
+        riderAge: int.tryParse(controller.age.text) ?? 0,
+        parentName: controller.parentName.text,
+        bookingType: controller.selectedBookingType.value,
+        bookingStatus: controller.bookingStatus.value,
+        isloading: false,
+      );
+
+      // Update booking
+      await controller.updateBooking(widget.bookingData!.id, booking);
+
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      printData("Error updating booking: $e");
+      showError("Failed to update booking: ${e.toString()}");
+    } finally {
+      // Clear loading state
+      controller.isLoading.value = false;
+    }
+  }
+
+  /// Complete booking with attendance - handles the entire flow properly
+  Future<void> _completeBookingWithAttendance() async {
+    try {
+      // Validate form data first
+      if (!validateData()) {
+        showError("Please fill all required fields");
+        return;
+      }
+
+      if (_formKey.currentState == null || !_formKey.currentState!.validate()) {
+        showError("Please correct the form errors");
+        return;
+      }
+
+      if (widget.attendance == null || widget.bookingData == null) {
+        showError("Missing attendance or booking data");
+        return;
+      }
+
+      // Set loading state
+      controller.isLoading.value = true;
+
+      // Create updated booking with correct ID
+      final booking = Booking(
+        courseFee: controller.courseFee.text,
+        bikeRentalPrice: controller.bikerental.text,
+        gearRentalPrice: controller.gearrental.text,
+        accomdationPrice: controller.accomodation.text,
+        email: controller.email.text,
+        additionalPhone: controller.addPhone.text,
+        enquiryDate: controller.enquiryDate.text,
+        id: widget.bookingData!.id, // Use existing booking ID
+        accomdation: controller.accomdation.value ? "yes" : "no",
+        plannedDate: controller.plannedData,
+        payment: [
+          PaymentDetails(
+            receivedAmount: double.tryParse(controller.amtPaid.text) ?? 0.0,
+            paymentStatus: controller.paymentStatus.value,
+            paymentMode: controller.paymentMode.value,
+            paymentProof: controller.paymentProof.value,
+          ),
+        ],
+        timestamp: DateTime.now().millisecondsSinceEpoch.toString(),
+        riderName: controller.riderName.text,
+        medicalCondition: controller.medicalCondition.text,
+        phone: controller.phone.text,
+        programBooked: controller.selectedProgram.value.title ?? "",
+        programDetails: controller.programDetails.text,
+        bookingDate: controller.bookingDate.text,
+        trainingSlot: controller.trainingSlot.value,
+        sessionType: controller.sessionType.value,
+        headSize: controller.headSize.text,
+        pantSize: controller.pantSize.text,
+        shirtSize: controller.shirtSize.text,
+        height: controller.height.text,
+        instagramProfile: controller.instagramProfile.text,
+        weight: controller.weight.text,
+        bikeRental: controller.bikeRental.value ? "Yes" : "No",
+        gearRental: controller.gearRental.value ? "Yes" : "No",
+        totalFee: double.tryParse(controller.totalFee.text) ?? 0.0,
+        totalPaid: double.tryParse(controller.amtPaid.text) ?? 0.0,
+        riderAge: int.tryParse(controller.age.text) ?? 0,
+        parentName: controller.parentName.text,
+        bookingType: controller.selectedBookingType.value,
+        bookingStatus: "Completed", // Mark as completed
+        isloading: false,
+      );
+
+      printData("Updating booking: ${booking.toJson()}");
+
+      // Update booking first
+      await controller.updateBooking(widget.bookingData!.id, booking);
+
+      // Create updated attendance with correct booking ID
+      final attendance = Attendance(
+        id: widget.attendance!.id,
+        bookingId: widget.bookingData!.id ?? "", // Use existing booking ID
+        createdAt: widget.attendance!.createdAt,
+        completedDates: widget.attendance!.completedDates
+            .map((d) => CompletedDate(date: d.date, duration: d.duration))
+            .toList(),
+        updatedAt: DateTime.now().toIso8601String(),
+        riderName: widget.attendance!.riderName,
+        phoneNumber: widget.attendance!.phoneNumber,
+        programBooked: widget.attendance!.programBooked,
+        sessionDate: widget.attendance!.sessionDate,
+        sessionNumber: widget.attendance!.sessionNumber,
+        totalSessions: widget.attendance!.totalSessions,
+        attendanceStatus: widget.attendance!.attendanceStatus,
+        sessionDuration: widget.attendance!.sessionDuration,
+        sessionCompletion: "Completed",
+        sessionsCompleted: widget.attendance!.sessionsCompleted,
+        fullDaysDone: widget.attendance!.fullDaysDone,
+        halfDaysDone: widget.attendance!.halfDaysDone,
+        sessionsRemaining: widget.attendance!.sessionsRemaining,
+      );
+
+      printData("Updating attendance: ${attendance.toJson()}");
+
+      // Update attendance
+      await controller.updateAttendance(widget.attendance!.id, attendance);
+
+      // Show success message
+
+      // Navigate back
+      Get.back();
+    } catch (e) {
+      printData("Error completing booking: $e");
+      showError("Failed to complete booking: ${e.toString()}");
+    } finally {
+      // Clear loading state
+      controller.isLoading.value = false;
+    }
   }
 }

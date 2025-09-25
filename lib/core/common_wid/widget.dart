@@ -179,6 +179,19 @@ class PaymentHistoryBottomSheet extends StatelessWidget {
                               height: 50,
                               width: 50,
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                // Display placeholder if image fails to load
+                                return Container(
+                                  height: 50,
+                                  width: 50,
+                                  color: Colors.grey[300],
+                                  child: const Icon(
+                                    Icons.broken_image,
+                                    color: Colors.grey,
+                                    size: 30,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ),

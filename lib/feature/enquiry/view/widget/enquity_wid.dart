@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:RUTSNRIDES/core/theme/app_theme.dart';
+import 'package:RUTSNRIDES/core/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -66,13 +67,18 @@ Widget buildAllLeadsList(
 
 Widget buildLeadCard(Lead lead, BuildContext context) {
   var controller = Get.find<EnquiryController>();
+
+
+  printData("lead.status ${lead.status}");
   return Card(
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     elevation: 2,
-    color: lead.status == "booked"
+    color: lead.status.toLowerCase() == "booked"
         ? Colors.green.shade50
         : lead.status.toLowerCase() == "follow up"
         ? Colors.orange.shade50
+        : lead.status.toLowerCase() == "new"
+        ? Colors.red.shade50
         : Colors.white,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     child: Padding(
@@ -187,48 +193,60 @@ Widget buildLeadCard(Lead lead, BuildContext context) {
               ),
             ],
           ),
-          Divider(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              CommonButton(
-                text: lead.status.toLowerCase() == "booked" ? "Booked" : "Book",
-                color: lead.status.toLowerCase() == "booked"
-                    ? AppTheme.bookingSecondary
-                    : lead.status.toLowerCase() == "follow up"
-                    ? AppTheme.followUpSecondary
-                    : AppTheme.enquirySecondary,
-                onTap: () async {
-                  Get.to(
-                    () => ConfirmBookingPage(enquirydata: lead, from: "lead"),
-                  );
-                },
-              ),
+          Visibility(
+            visible: lead.status.toLowerCase() != "booked",
+            child: Column(
+              children: [
+                Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CommonButton(
+                      text: lead.status.toLowerCase() == "booked"
+                          ? "Booked"
+                          : "Book",
+                      color: lead.status.toLowerCase() == "booked"
+                          ? AppTheme.bookingSecondary
+                          : lead.status.toLowerCase() == "follow up"
+                          ? AppTheme.followUpSecondary
+                          : AppTheme.enquirySecondary,
+                      onTap: () async {
+                        Get.to(
+                          () => ConfirmBookingPage(
+                            enquirydata: lead,
+                            from: "lead",
+                          ),
+                        );
+                      },
+                    ),
 
-              CommonButton(
-                isLoading: controller.followUpLoading.value,
-                text: "Follow Up",
+                    CommonButton(
+                      isLoading: controller.followUpLoading.value,
+                      text: "Follow Up",
 
-                color: lead.status.toLowerCase() == "booked"
-                    ? AppTheme.bookingSecondary
-                    : lead.status.toLowerCase() == "follow up"
-                    ? AppTheme.followUpSecondary
-                    : AppTheme.enquirySecondary,
+                      color: lead.status.toLowerCase() == "booked"
+                          ? AppTheme.bookingSecondary
+                          : lead.status.toLowerCase() == "follow up"
+                          ? AppTheme.followUpSecondary
+                          : AppTheme.enquirySecondary,
 
-                onTap: () {
-                  showFollowUpBottomSheet(
-                    context: context,
-                    onConfirm: (pickedDate, note) async {
-                      await controller.updateFollowUp(
-                        lead.id,
-                        note,
-                        pickedDate,
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
+                      onTap: () {
+                        showFollowUpBottomSheet(
+                          context: context,
+                          onConfirm: (pickedDate, note) async {
+                            await controller.updateFollowUp(
+                              lead.id,
+                              note,
+                              pickedDate,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -244,44 +262,340 @@ class MultiDatePickerWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ElevatedButton.icon(
-          icon: Icon(Icons.date_range),
-          label: Text("Pick Date"),
-          onPressed: () async {
-            DateTime? picked = await showDatePicker(
-              context: context,
-              initialDate: DateTime.now(),
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2100),
-            );
+        // Date Picker Button with improved styling
+        SizedBox(
+          child: ElevatedButton.icon(
+            icon: Icon(Icons.calendar_today, size: 20),
+            label: Text(
+              "SELECT DATE & SLOT",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.blue[700],
+              elevation: 1,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () async {
+              DateTime selectedDate = DateTime.now();
+              String? selectedSlot;
 
-            if (picked != null) {
-              controller.addDate(picked);
-            }
-          },
-        ),
+              final result = await showDialog<Map<String, dynamic>>(
+                context: context,
+                builder: (ctx) {
+                  return AlertDialog(
+                    title: Row(
+                      children: [
+                        Icon(Icons.date_range, color: Colors.blue[700]),
+                        SizedBox(width: 8),
+                        Text(
+                          "Select Date & Slot",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                    content: Obx(() {
+                      final program = controller.selectedProgram.value;
 
-        // inside your Obx widget
-        Obx(
-          () => Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: controller.plannedData.map((date) {
-              // assume date.date is "2025-09-17"
-              final parsedDate = DateTime.parse(date.date);
-              final formatted = DateFormat("MMMM dd, yyyy").format(parsedDate);
-              // e.g. "17 Sep 2025"
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Date Picker Section
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Selected Date",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                InkWell(
+                                  onTap: () async {
+                                    DateTime? picked = await showDatePicker(
+                                      context: ctx,
+                                      initialDate: selectedDate,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2100),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: ThemeData.light().copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary: Colors.blue[700]!,
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+                                    if (picked != null) {
+                                      selectedDate = picked;
+                                      // Force UI update
+                                      (ctx as Element).markNeedsBuild();
+                                    }
+                                  },
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_month,
+                                        color: Colors.blue[700],
+                                        size: 20,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        DateFormat(
+                                          "MMM dd, yyyy",
+                                        ).format(selectedDate),
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Spacer(),
+                                      Text(
+                                        "Change",
+                                        style: TextStyle(
+                                          color: Colors.blue[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
 
-              return Chip(
-                label: Text(formatted),
-                deleteIcon: const Icon(Icons.close),
-                onDeleted: () => controller.removeDate(date.date),
+                          const SizedBox(height: 20),
+
+                          // Slot Dropdown with improved styling
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: "Time Slot",
+                                labelStyle: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.access_time,
+                                  color: Colors.blue[700],
+                                ),
+                              ),
+                              value: selectedSlot,
+                              items:
+                                  [
+                                    "Morning (9AM–12PM)",
+                                    "Afternoon (2PM–5PM)",
+                                    "Full Day",
+                                  ].map((slot) {
+                                    return DropdownMenuItem<String>(
+                                      value: slot,
+                                      child: Text(
+                                        slot,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                              onChanged: (val) {
+                                selectedSlot = val;
+                              },
+                              style: TextStyle(fontSize: 14),
+                              dropdownColor: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+
+                          if (program.durations.isEmpty) ...[
+                            SizedBox(height: 12),
+                            Text(
+                              "No slots available",
+                              style: TextStyle(
+                                color: Colors.orange[700],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    }),
+                    actions: [
+                      TextButton(
+                        child: Text(
+                          "CANCEL",
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                      ElevatedButton(
+                        child: Text("CONFIRM"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[700],
+                        ),
+                        onPressed: () {
+                          if (selectedSlot != null &&
+                              selectedSlot!.isNotEmpty) {
+                            Navigator.pop(ctx, {
+                              "date": selectedDate,
+                              "slot": selectedSlot,
+                            });
+                          } else {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                content: Text("Please select a time slot"),
+                                backgroundColor: Colors.orange[700],
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  );
+                },
               );
-            }).toList(),
+
+              if (result != null) {
+                controller.addDateWithSlot(result["date"], result["slot"]);
+              }
+            },
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
+
+        // Selected Dates Display with improved styling
+        Obx(
+          () => controller.plannedData.isEmpty
+              ? Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.grey[500],
+                        size: 18,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        "No dates selected yet",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Selected Dates:",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: controller.plannedData.map((d) {
+                        final formatted = DateFormat(
+                          "MMM dd, yyyy",
+                        ).format(DateTime.parse(d.date));
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.blue[100]!),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.calendar_today,
+                                  size: 14,
+                                  color: Colors.blue[700],
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  "$formatted - ${d.duration}",
+                                  style: TextStyle(
+                                    color: Colors.blue[800],
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    controller.removeDate(
+                                      DateTime.parse(d.date),
+                                    );
+                                  },
+                                  child: Row(
+                                    children: [
+                                      SizedBox(width: 4),
+                                      Icon(
+                                        Icons.close,
+                                        size: 16,
+                                        color: Colors.blue[700],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+        ),
+
+        const SizedBox(height: 16),
       ],
     );
   }
